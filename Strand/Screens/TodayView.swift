@@ -705,6 +705,20 @@ struct TodayView: View {
         return min(upper, max(0, current + delta))
     }
 
+    /// #2378 - the day step a horizontal swipe of `dx` points asks for: +1 OLDER, -1 NEWER.
+    ///
+    /// Rightward (dx > 0) is OLDER and leftward is NEWER, which is direct manipulation — dragging the
+    /// content left brings the page to its right, the later day, into view — and the direction the
+    /// Kotlin twin already takes (`dayNavSwipeTarget`, pinned by `DayNavTest`). Apple ran the opposite
+    /// way in both shells, so the same gesture moved the day backwards here and forwards there.
+    ///
+    /// Pure and shared by both Apple shells so the direction is pinned by a test rather than living
+    /// twice inside gesture closures, which is how the two platforms drifted apart unnoticed.
+    /// Mirror EXACTLY in Kotlin.
+    static func daySwipeDelta(dx: CGFloat) -> Int {
+        dx > 0 ? 1 : -1
+    }
+
     /// #16 - whole days-back offset for a date chosen in the day-nav picker, measured from the LOGICAL day
     /// (not raw Date()). Pure + unit-testable so the 00:00-04:00 rollover case is locked: in that window the
     /// logical day is the PREVIOUS calendar day, so anchoring the offset here (rather than on raw Date())
@@ -1251,8 +1265,8 @@ struct TodayView: View {
                 let dy = value.translation.height
                 // Horizontal-dominant and far enough to count as a deliberate day flip.
                 guard abs(dx) > abs(dy) * 1.5, abs(dx) > 50 else { return }
-                // Swipe LEFT (dx < 0) -> OLDER day (+1 offset); swipe RIGHT -> NEWER day (-1 offset).
-                let delta = dx < 0 ? 1 : -1
+                // Swipe RIGHT (dx > 0) -> OLDER day (+1 offset); swipe LEFT -> NEWER day (-1 offset).
+                let delta = Self.daySwipeDelta(dx: dx)
                 let next = Self.clampedDayOffset(current: selectedDayOffset, delta: delta,
                                                  maxOffset: earliestDayOffset)
                 guard next != selectedDayOffset else { return }
