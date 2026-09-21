@@ -1769,7 +1769,10 @@ fun TodayScreen(
                         ) {
                             Row(verticalAlignment = Alignment.Top) {
                                 Box(modifier = Modifier.weight(1f)) {
-                                    SectionHeader(uiString(R.string.today_section_key_metrics), overline = dayLabel, trailing = trendWindowLabel(keyMetricsWindowDays))
+                                    // The label names the window the DETAILED tiles graph, so it is only honest while they are
+                                    // drawn: with the trend graphs off (the default) nothing in this section renders a
+                                    // trend, and the header was still announcing one (#2376). Twin of the Apple change.
+                                    SectionHeader(uiString(R.string.today_section_key_metrics), overline = dayLabel, trailing = if (keyMetricsDetailed) trendWindowLabel(keyMetricsWindowDays) else null)
                                 }
                                 TodayEditAction(
                                     onClick = { showMetricsEditor = true },
