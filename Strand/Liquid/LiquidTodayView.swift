@@ -90,6 +90,11 @@ struct LiquidTodayView: View {
 
     // sheets / expanders
     @State private var guideSection: ScoreSection?
+    /// #2463 Simple view: the Charge ring opens "what shaped it" for the wearer's own night.
+    @State private var showChargeWhy = false
+    /// The night the Charge breakdown explains, resolved ONCE in load() with the same rule classic Today
+    /// uses (`lastScoredRecoveryDay ?? displayDay`), so both screens attribute the same night.
+    @State private var cachedChargeBreakdownRow: DailyMetric?
     @State private var customizationDestination: TodayCustomizationDestination?
     /// #1862: the optional Coach launcher sheet. Presentation state only — opening it requests nothing.
     @State private var showCoachLauncher = false
@@ -105,8 +110,15 @@ struct LiquidTodayView: View {
     // drag-to-reorder rows); every section always renders (decode inserts a missing one at its default spot).
     @AppStorage(TodayLayoutPrefs.orderKey) private var sectionOrderRaw = ""
     @AppStorage(TodayLayoutPrefs.hiddenKey) private var hiddenSectionsRaw = ""
+    /// #2463: the opt-in Simple view. Presentation only — see `SimpleViewPrefs`.
+    @AppStorage(SimpleViewPrefs.enabledKey) private var simpleView = false
     private var sectionOrder: [TodaySection] {
-        TodayLayoutPrefs.visibleOrder(orderRaw: sectionOrderRaw, hiddenRaw: hiddenSectionsRaw)
+        if simpleView {
+            // The hidden filter is deliberately not applied: Simple view's three sections always show.
+            return SimpleViewPrefs.order(fullOrder: TodayLayoutPrefs.visibleOrder(orderRaw: sectionOrderRaw,
+                                                                                  hiddenRaw: ""))
+        }
+        return TodayLayoutPrefs.visibleOrder(orderRaw: sectionOrderRaw, hiddenRaw: hiddenSectionsRaw)
     }
     // #430 parity: the Key-Metrics grid honours the SAME editor selection/order + Detailed-tiles switch as
     // Android (byte-identical @AppStorage keys). `kSparks` holds the trailing-30-day series the detailed
@@ -377,7 +389,14 @@ struct LiquidTodayView: View {
                     // Self-gates on the toggle AND on the detector finding an unsaved, un-dismissed window,
                     // so it renders nothing by default.
                     AutoWorkoutCard()
-                    dataSourcesSection
+                    // #2463 Simple view: the setup guide takes the place of the provenance section, which
+                    // is reference detail rather than something a Simple-view wearer acts on. Today only,
+                    // like the other action cards above.
+                    if simpleView {
+                        if selectedDayOffset == 0 { StrapSetupSummaryCard() }
+                    } else {
+                        dataSourcesSection
+                    }
                     Color.clear.frame(height: 90) // floating tab-bar clearance
                 }
                 .padding(.horizontal, NoopMetrics.screenHPadding)
@@ -446,6 +465,7 @@ struct LiquidTodayView: View {
             DashboardCardPrefs.migrateLegacyStepsAverage()
             await load()
         }
+        .sheet(isPresented: $showChargeWhy) { chargeWhySheet }
         .sheet(item: $guideSection) { section in
             NavigationStack { ScoringGuideView(initialSection: section, onClose: { guideSection = nil }) }
         }
@@ -679,7 +699,9 @@ struct LiquidTodayView: View {
             HeroScoreCell(label: String(localized: "Charge"), score: chargeDisplay.pct,
                           tint: chargeDisplay.pct.map { StrandPalette.recoveryColor($0) } ?? StrandPalette.chargeColor,
                           animated: dataLoaded, onGuide: { guideSection = .charge },
-                          detailRoute: .metric(HeroRingMetric.charge))
+                          detailRoute: .metric(HeroRingMetric.charge),
+                          simple: simpleView,
+                          onOpen: simpleView ? { showChargeWhy = true } : nil)
             // #45: the hero Effort must honour the user's Effort scale like every other Effort read-out.
             // Show the value on the chosen scale (0–100 or WHOOP 0–21) with the matching vessel max, and
             // one decimal on the compressed 0–21 axis to match the app-wide `effortDisplay` convention
@@ -690,10 +712,12 @@ struct LiquidTodayView: View {
                           onGuide: { guideSection = .effort },
                           maxValue: effortScale == .whoop ? 21 : 100,
                           decimals: effortScale == .whoop ? 1 : 0,
-                          detailRoute: .metric(HeroRingMetric.effort))
+                          detailRoute: .metric(HeroRingMetric.effort),
+                          simple: simpleView)
             HeroScoreCell(label: String(localized: "Rest"), score: restScore, tint: StrandPalette.restColor,
                           animated: dataLoaded, onGuide: { guideSection = .rest },
-                          detailRoute: .metric(HeroRingMetric.rest))
+                          detailRoute: .metric(HeroRingMetric.rest),
+                          simple: simpleView)
                 .overlay(alignment: .top) {
                     if let sourceLabel = heroSourceLabel {
                         SourceBadge("\(sourceLabel)", tint: StrandPalette.textSecondary)
@@ -709,6 +733,90 @@ struct LiquidTodayView: View {
         .padding(.vertical, NoopMetrics.space4)
         .padding(.horizontal, NoopMetrics.space3)
         .background(NoopPanelSurface(cornerRadius: 26, elevated: true, surfaceOpacity: cardOpacity))
+    }
+
+    /// #2463 Simple view: the Charge ring's destination — what shaped the wearer's own Charge.
+    ///
+    /// Reads `ChargeBreakdownWiring.breakdown`, the resolver classic Today and the Coupled view already
+    /// use, for the night resolved once in load(); no figure is computed here, so this sheet and classic
+    /// Today cannot disagree. The general method stays one tap away, below the wearer's own data.
+    private var chargeWhySheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
+                    let row = cachedChargeBreakdownRow
+                    let breakdown = row.flatMap {
+                        ChargeBreakdownWiring.breakdown(days: repo.days, row: $0, sleepPerfPercent: restScore,
+                                                        hrvBaselineEpoch: Baselines.hrvBaselineEpoch())
+                    }
+                    NoopCard(padding: 18, tint: StrandPalette.chargeColor) {
+                        VStack(alignment: .leading, spacing: NoopMetrics.cardInnerSpacing) {
+                            HStack(alignment: .firstTextBaseline, spacing: NoopMetrics.space2) {
+                                Text(verbatim: chargeDisplay.pct.map { "\(Int($0.rounded()))" } ?? "—")
+                                    .font(StrandFont.number(34))
+                                    .foregroundStyle(StrandPalette.textPrimary)
+                                Text("Charge")
+                                    .font(StrandFont.subhead)
+                                    .foregroundStyle(StrandPalette.textSecondary)
+                            }
+                            if let breakdown, !breakdown.drivers.isEmpty {
+                                ChargeBreakdownSection(drivers: breakdown.drivers,
+                                                       confidence: breakdown.confidence,
+                                                       skinTempRel: RecoveryScorer.skinTempRelative(
+                                                           deviationC: row?.skinTempDevC))
+                            } else {
+                                Text(verbatim: chargeDisplay.calibrationDetail
+                                     ?? String(localized: "No scored night to break down yet. Once a night is scored, this shows what raised or lowered your Charge."))
+                                    .font(StrandFont.caption)
+                                    .foregroundStyle(StrandPalette.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    NavigationLink(value: TabRoute.metric(HeroRingMetric.charge)) {
+                        chargeWhyLinkRow(String(localized: "See your Charge over time"), icon: "chart.line.uptrend.xyaxis")
+                    }
+                    .buttonStyle(.plain)
+                    NavigationLink {
+                        ScoringGuideView(initialSection: .charge, onClose: { showChargeWhy = false })
+                    } label: {
+                        chargeWhyLinkRow(String(localized: "How Charge is scored"), icon: "info.circle")
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, NoopMetrics.screenHPadding)
+                .padding(.vertical, NoopMetrics.space4)
+            }
+            .background(StrandPalette.surfaceBase.ignoresSafeArea())
+            .navigationTitle(Text("What shaped your Charge"))
+            .tabRouteDestinations()
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showChargeWhy = false }
+                        .foregroundStyle(StrandPalette.accent)
+                }
+            }
+        }
+    }
+
+    /// One tappable row under the Charge breakdown.
+    private func chargeWhyLinkRow(_ title: String, icon: String) -> some View {
+        HStack(spacing: NoopMetrics.space3) {
+            Image(systemName: icon)
+                .foregroundStyle(StrandPalette.accent)
+                .accessibilityHidden(true)
+            Text(verbatim: title)
+                .font(StrandFont.body)
+                .foregroundStyle(StrandPalette.textPrimary)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(StrandFont.footnote)
+                .foregroundStyle(StrandPalette.textTertiary)
+                .accessibilityHidden(true)
+        }
+        .padding(NoopMetrics.cardPadding)
+        .background(NoopPanelSurface(cornerRadius: 18))
+        .contentShape(Rectangle())
     }
 
     // MARK: - Heart rate
@@ -1627,6 +1735,7 @@ struct LiquidTodayView: View {
             todayScored: day?.recovery != nil,
             isCalibrating: calNights != nil
         )
+        cachedChargeBreakdownRow = priorScored ?? day
         cachedChargeDisplay = ChargeDisplay.resolve(
             todayRecovery: day?.recovery,
             priorScored: priorScored,
@@ -2211,21 +2320,61 @@ private struct HeroScoreCell: View {
             : String(Int(score.rounded()))
     }
 
+    /// #2463 Simple view: the whole cell — ring AND label — becomes one control that opens the wearer's
+    /// data, instead of the ring opening the data while the chevroned label opens the general scoring
+    /// guide. `onOpen` (a sheet, as Charge uses) wins over `detailRoute`; with neither, the cell is inert.
+    var simple = false
+    var onOpen: (() -> Void)? = nil
+
+    /// The label row, shared by both layouts so their typography cannot drift apart.
+    private var labelRow: some View {
+        HStack(spacing: 3) {
+            // #74: one line, shrink-to-fit rather than wrap under large Dynamic Type (mirrors the
+            // score number above) so CHARGE/EFFORT/REST never grow the hero card to two lines.
+            Text(label.uppercased()).font(StrandFont.overline).tracking(1.6)
+                .lineLimit(1).minimumScaleFactor(0.7)
+            Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold)).opacity(0.6)
+        }
+        // Theme-aware hero label (#1160): normal text token — readable on Dark and Light
+        // panel surfaces alike (was onDark* when the hero fill was pinned dark).
+        .foregroundStyle(StrandPalette.textSecondary)
+    }
+
+    /// Simple view's single-target cell.
+    @ViewBuilder private var simpleCell: some View {
+        let cell = VStack(spacing: 7) {
+            LiquidScoreGauge(score: score, tint: tint, diameter: Self.vesselDiameter, animated: animated,
+                             maxValue: maxValue, decimals: decimals, tapPassesThrough: true)
+            labelRow
+        }
+        .contentShape(Rectangle())
+        if let onOpen {
+            Button(action: onOpen) { cell }
+                .buttonStyle(LiquidPressStyle())
+                .accessibilityLabel(Text("\(label), \(spokenScore)"))
+                .accessibilityHint(Text("Shows what shaped it"))
+        } else if let detailRoute {
+            NavigationLink(value: detailRoute) { cell }
+                .buttonStyle(LiquidPressStyle())
+                .accessibilityLabel(Text("\(label), \(spokenScore)"))
+                .accessibilityHint(Text("Opens the trend and readings"))
+        } else {
+            cell
+        }
+    }
+
     var body: some View {
+        if simple {
+            simpleCell.frame(maxWidth: .infinity)
+        } else {
+            fullCell
+        }
+    }
+
+    private var fullCell: some View {
         VStack(spacing: 7) {
             gaugeView
-            Button(action: onGuide) {
-                HStack(spacing: 3) {
-                    // #74: one line, shrink-to-fit rather than wrap under large Dynamic Type (mirrors the
-                    // score number above) so CHARGE/EFFORT/REST never grow the hero card to two lines.
-                    Text(label.uppercased()).font(StrandFont.overline).tracking(1.6)
-                        .lineLimit(1).minimumScaleFactor(0.7)
-                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold)).opacity(0.6)
-                }
-                // Theme-aware hero label (#1160): normal text token — readable on Dark and Light
-                // panel surfaces alike (was onDark* when the hero fill was pinned dark).
-                .foregroundStyle(StrandPalette.textSecondary)
-            }
+            Button(action: onGuide) { labelRow }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("\(label), \(spokenScore). See how it is scored."))
         }

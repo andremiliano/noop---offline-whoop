@@ -1833,6 +1833,7 @@ struct SettingsView: View {
     /// split out the same way (see `spo2CandidateCard`'s comment) — it is NOT WHOOP-5/MG-specific.
     @ViewBuilder private var experimentalCard: some View {
         liquidTodayCard
+        simpleViewCard
         liveSessionsCard
         // WHOOP 5/MG protocol research now lives in Test Centre. Everyday Settings no longer carries
         // a second copy; the persisted keys and reversible disable actions remain unchanged there.
@@ -1844,6 +1845,8 @@ struct SettingsView: View {
     /// Opt-in liquid Today redesign (default ON in this build). Off falls back to the
     /// classic dashboard immediately, no rebuild. Same data either way.
     @AppStorage("noop.liquidTodayEnabled") private var liquidTodayEnabled = true
+    /// #2463: the opt-in Simple view (`SimpleViewPrefs`).
+    @AppStorage(SimpleViewPrefs.enabledKey) private var simpleViewEnabled = false
     private var liquidTodayCard: some View {
         SettingsSection(
             icon: "drop.fill",
@@ -1859,6 +1862,49 @@ struct SettingsView: View {
                 .toggleStyle(.switch)
                 .tint(StrandPalette.accent)
                 Text("Replaces the Today tab with the prototype redesign. Turn it off any time to return to the classic dashboard. Reads the same live data from your strap.")
+                    .font(StrandFont.caption)
+                    .foregroundStyle(StrandPalette.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// #2463 Simple view: three scores up front, each opening the wearer's own data, plus the strap setup
+    /// guide. Presentation only; nothing it shows is computed differently.
+    private var simpleViewCard: some View {
+        SettingsSection(
+            icon: "circle.grid.3x3.fill",
+            title: "Simple view",
+            blurb: "Today shows only Charge, Effort and Rest, a one-line summary and today's workouts. Tap a score to see what shaped it. Everything else is still in More."
+        ) {
+            VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) {
+                Toggle(isOn: $simpleViewEnabled) {
+                    Text("Simple view")
+                        .font(StrandFont.subhead)
+                        .foregroundStyle(StrandPalette.textPrimary)
+                }
+                .toggleStyle(.switch)
+                .tint(StrandPalette.accent)
+                Text("Applies to the Liquid Today screen. Same numbers as the full view, fewer of them.")
+                    .font(StrandFont.caption)
+                    .foregroundStyle(StrandPalette.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                NavigationLink {
+                    StrapSetupGuideView()
+                } label: {
+                    HStack {
+                        Text("Set up your strap")
+                            .font(StrandFont.subhead)
+                            .foregroundStyle(StrandPalette.accent)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(StrandFont.footnote)
+                            .foregroundStyle(StrandPalette.textTertiary)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .buttonStyle(.plain)
+                Text("What to turn on for the data you want, for WHOOP 4.0 and 5.0 / MG.")
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
