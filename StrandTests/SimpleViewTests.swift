@@ -120,4 +120,40 @@ final class SimpleViewTests: XCTestCase {
         XCTAssertNil(EffortTarget.standing(effort: nil, band: 10...14))
         XCTAssertNil(EffortTarget.standing(effort: 6, band: nil))
     }
+
+    // MARK: - UsualRange
+
+    func testNoBandWithLessThanAWeekOfHistory() {
+        let r = UsualRange.evaluate(value: 50, history: [40, 45, 50, 55, 60, 65])
+        XCTAssertNil(r.band)
+        XCTAssertEqual(r.status, .notEnoughHistory)
+    }
+
+    /// The band is the middle half of the history: 1…9 gives 3…7.
+    func testBandIsTheInterquartileRange() throws {
+        let b = try XCTUnwrap(UsualRange.band([9, 1, 8, 2, 7, 3, 6, 4, 5]))
+        XCTAssertEqual(b.lowerBound, 3, accuracy: 1e-9)
+        XCTAssertEqual(b.upperBound, 7, accuracy: 1e-9)
+    }
+
+    func testStatusAgainstTheBand() {
+        let h: [Double] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        XCTAssertEqual(UsualRange.evaluate(value: 5, history: h).status, .usual)
+        XCTAssertEqual(UsualRange.evaluate(value: 3, history: h).status, .usual)
+        XCTAssertEqual(UsualRange.evaluate(value: 8, history: h).status, .above)
+        XCTAssertEqual(UsualRange.evaluate(value: 2, history: h).status, .below)
+        XCTAssertEqual(UsualRange.evaluate(value: nil, history: h).status, .noData)
+    }
+
+    /// The displayed value ends the sparkline and is judged against the days BEFORE it only, so a day
+    /// is never part of its own "usual".
+    func testTrendEndsOnTheDisplayedValueAndExcludesItsOwnDay() {
+        let pts: [(day: String, value: Double)] = (1...9).map { (String(format: "2026-09-%02d", $0), Double($0)) }
+            + [("2026-09-10", 100)]
+        let t = GlanceHistory.trend(pts, through: "2026-09-10", value: 5)
+        XCTAssertEqual(t.values.last, 5)
+        XCTAssertEqual(t.values.count, 10)
+        XCTAssertEqual(t.result.status, .usual)
+        XCTAssertEqual(t.result.band?.upperBound ?? 0, 7, accuracy: 1e-9)
+    }
 }

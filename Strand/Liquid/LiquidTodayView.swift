@@ -90,12 +90,11 @@ struct LiquidTodayView: View {
 
     // sheets / expanders
     @State private var guideSection: ScoreSection?
-    /// #2463 Simple view: the Charge ring opens "what shaped it" for the wearer's own night.
+    /// #2463 Glance: each ring pushes its score page.
     @State private var showChargeWhy = false
-    /// #2463 Simple view: the Effort and Rest rings open their own sheets, as Charge does.
     @State private var showEffortWhy = false
     @State private var showRestWhy = false
-    /// The window the hero's Effort covers, resolved in load(), so the Effort sheet's zone time
+    /// The window the hero's Effort covers, resolved in load(), so the Effort page's zone time
     /// describes the same stretch as the score.
     @State private var cachedEffortWindow: (from: Int, to: Int)?
     /// The night the Charge breakdown explains, resolved ONCE in load() with the same rule classic Today
@@ -476,14 +475,24 @@ struct LiquidTodayView: View {
             DashboardCardPrefs.migrateLegacyStepsAverage()
             await load()
         }
-        .sheet(isPresented: $showChargeWhy) { chargeWhySheet }
-        .sheet(isPresented: $showEffortWhy) {
-            SimpleEffortSheet(effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
-                              from: cachedEffortWindow?.from ?? 0, to: cachedEffortWindow?.to ?? 0,
-                              onClose: { showEffortWhy = false })
+        // #2463 Glance: a ring opens its score page, pushed onto Today's stack. Every figure a page
+        // shows for the day is handed over from the state the ring itself reads.
+        .navigationDestination(isPresented: $showChargeWhy) {
+            GlanceChargePage(charge: chargeDisplay.pct, stateLabel: chargeDisplay.stateLabel,
+                             synthesis: chargeDisplay.calibrationDetail ?? synthLine,
+                             breakdownRow: cachedChargeBreakdownRow, restScore: restScore,
+                             date: selectedLogicalDay, dayKey: selectedDayKey)
         }
-        .sheet(isPresented: $showRestWhy) {
-            SimpleRestSheet(restScore: restScore, day: displayDay, onClose: { showRestWhy = false })
+        .navigationDestination(isPresented: $showEffortWhy) {
+            GlanceEffortPage(effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
+                             from: cachedEffortWindow?.from ?? 0, to: cachedEffortWindow?.to ?? 0,
+                             workouts: workouts,
+                             caloriesText: caloriesCount.map { "\(Int($0.rounded())) kcal" },
+                             stepsText: stepCount == nil ? nil : stepsText,
+                             date: selectedLogicalDay, dayKey: selectedDayKey)
+        }
+        .navigationDestination(isPresented: $showRestWhy) {
+            GlanceRestPage(restScore: restScore, day: displayDay, date: selectedLogicalDay, dayKey: selectedDayKey)
         }
         .sheet(item: $guideSection) { section in
             NavigationStack { ScoringGuideView(initialSection: section, onClose: { guideSection = nil }) }
@@ -755,75 +764,6 @@ struct LiquidTodayView: View {
         .padding(.horizontal, NoopMetrics.space3)
         .background(NoopPanelSurface(cornerRadius: 26, elevated: true, surfaceOpacity: cardOpacity))
     }
-
-    /// #2463 Simple view: the Charge ring's destination — what shaped the wearer's own Charge.
-    ///
-    /// Reads `ChargeBreakdownWiring.breakdown`, the resolver classic Today and the Coupled view already
-    /// use, for the night resolved once in load(); no figure is computed here, so this sheet and classic
-    /// Today cannot disagree. The general method stays one tap away, below the wearer's own data.
-    private var chargeWhySheet: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
-                    let row = cachedChargeBreakdownRow
-                    let breakdown = row.flatMap {
-                        ChargeBreakdownWiring.breakdown(days: repo.days, row: $0, sleepPerfPercent: restScore,
-                                                        hrvBaselineEpoch: Baselines.hrvBaselineEpoch())
-                    }
-                    NoopCard(padding: 18, tint: StrandPalette.chargeColor) {
-                        VStack(alignment: .leading, spacing: NoopMetrics.cardInnerSpacing) {
-                            HStack(alignment: .firstTextBaseline, spacing: NoopMetrics.space2) {
-                                Text(verbatim: chargeDisplay.pct.map { "\(Int($0.rounded()))" } ?? "—")
-                                    .font(StrandFont.number(34))
-                                    .foregroundStyle(StrandPalette.textPrimary)
-                                Text("Charge")
-                                    .font(StrandFont.subhead)
-                                    .foregroundStyle(StrandPalette.textSecondary)
-                            }
-                            if let breakdown, !breakdown.drivers.isEmpty {
-                                // No `skinTempRel`: the skin-temperature driver row already states the
-                                // deviation, and the separate relative row would show the same fact a
-                                // second time in different words.
-                                ChargeBreakdownSection(drivers: breakdown.drivers,
-                                                       confidence: breakdown.confidence)
-                            } else {
-                                Text(verbatim: chargeDisplay.calibrationDetail
-                                     ?? String(localized: "No scored night to break down yet. Once a night is scored, this shows what raised or lowered your Charge."))
-                                    .font(StrandFont.caption)
-                                    .foregroundStyle(StrandPalette.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
-                    NavigationLink(value: TabRoute.metric(HeroRingMetric.charge)) {
-                        SimpleSheetLinkRow(title: String(localized: "See your Charge over time"), icon: "chart.line.uptrend.xyaxis")
-                    }
-                    .buttonStyle(.plain)
-                    NavigationLink {
-                        ScoringGuideView(initialSection: .charge, onClose: { showChargeWhy = false })
-                    } label: {
-                        SimpleSheetLinkRow(title: String(localized: "How Charge is scored"), icon: "info.circle")
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, NoopMetrics.screenHPadding)
-                .padding(.vertical, NoopMetrics.space4)
-            }
-            .background(StrandPalette.surfaceBase.ignoresSafeArea())
-            .navigationTitle(Text("Charge"))
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .tabRouteDestinations()
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { showChargeWhy = false }
-                        .foregroundStyle(StrandPalette.accent)
-                }
-            }
-        }
-    }
-
 
     /// The hero's Effort on the wearer's scale — one definition for the ring, the target card and the
     /// Effort sheet, so they cannot show different numbers.
