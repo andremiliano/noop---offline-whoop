@@ -1,4 +1,5 @@
 import XCTest
+import WhoopStore
 @testable import Strand
 
 /// #2463 Glance and the strap setup guide. The pure parts — what the guide tells each strap to turn on,
@@ -146,5 +147,60 @@ extension GlanceTests {
         XCTAssertEqual(GlanceMonitorTile.position(of: 60, in: [50, 70, 55]) ?? -1, 0.5, accuracy: 1e-9)
         XCTAssertNil(GlanceMonitorTile.position(of: 60, in: [60, 60]))
         XCTAssertNil(GlanceMonitorTile.position(of: nil, in: [50, 70]))
+    }
+}
+
+// MARK: - ActivityConsistency
+
+extension GlanceTests {
+    private func utcMonday() -> Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        c.firstWeekday = 2
+        return c
+    }
+
+    private func ts(_ y: Int, _ m: Int, _ d: Int, _ cal: Calendar) -> Int {
+        Int(cal.date(from: DateComponents(year: y, month: m, day: d, hour: 12))!.timeIntervalSince1970)
+    }
+
+    func testMonthsCountWorkoutsPerDayAndPlaceDayOneUnderItsWeekday() {
+        let cal = utcMonday()
+        let now = cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 16))!
+        let months = ActivityConsistency.months(
+            workoutStarts: [ts(2026, 9, 1, cal), ts(2026, 9, 1, cal), ts(2026, 8, 31, cal)], now: now, calendar: cal)
+        XCTAssertEqual(months.count, 2)
+        let (aug, sep) = (months[0], months[1])
+        XCTAssertEqual(aug.cells.count, 31)
+        XCTAssertEqual(aug.cells[30].workouts, 1)
+        XCTAssertEqual(sep.cells.count, 30)
+        XCTAssertEqual(sep.cells[0].workouts, 2)
+        // 1 September 2026 is a Tuesday: one blank under a Monday-first header.
+        XCTAssertEqual(sep.leadingBlanks, 1)
+        XCTAssertTrue(sep.cells[24].isToday)
+        XCTAssertTrue(sep.cells[25].isFuture)
+        XCTAssertFalse(aug.cells.contains { $0.isFuture })
+    }
+
+    private func scored(_ key: String, charge: Double?, strain: Double?) -> DailyMetric {
+        DailyMetric(day: key, totalSleepMin: nil, efficiency: nil, deepMin: nil, remMin: nil,
+                    lightMin: nil, disturbances: nil, restingHr: nil, avgHrv: nil,
+                    recovery: charge, strain: strain, exerciseCount: nil)
+    }
+
+    /// Charge 80 sets 14–18 on the 0–21 axis, so stored Effort 70 (14.7) is within, 50 (10.5) below and
+    /// 95 (19.95) above. Today and half-scored days are not counted.
+    func testTargetDaysJudgeEachDayAgainstItsOwnCharge() {
+        let days = [
+            scored("2026-09-20", charge: 80, strain: 70),
+            scored("2026-09-21", charge: 80, strain: 50),
+            scored("2026-09-22", charge: 80, strain: 95),
+            scored("2026-09-23", charge: nil, strain: 60),
+            scored("2026-09-24", charge: 20, strain: 30),   // 4–10 band, 6.3 → within
+            scored("2026-09-25", charge: 80, strain: 10),   // today: still accruing
+        ]
+        let t = ActivityConsistency.targetDays(days, before: "2026-09-25")
+        XCTAssertEqual(t, ActivityConsistency.TargetDays(below: 1, within: 2, above: 1))
+        XCTAssertEqual(t.total, 4)
     }
 }

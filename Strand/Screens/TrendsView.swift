@@ -223,6 +223,9 @@ struct TrendsView: View {
         }
     }
 
+    /// #2463 Glance: the activity calendar and Effort-target history lead the tab.
+    @AppStorage(GlanceLayoutPrefs.enabledKey) private var glanceLayout = false
+
     var body: some View {
         // The liquid metric cards now tap through to their MetricDetailView (matching Today's card
         // taps + Explore's rows). On iOS each tab already supplies a NavigationStack, so those pushes
@@ -269,6 +272,12 @@ struct TrendsView: View {
                         // only when NO week in history has data. Past weeks render in the same format.
                         weeklyDigestNav
                             .staggeredAppear(index: 0)
+                        if glanceLayout {
+                            GlanceActivityCalendarCard()
+                                .staggeredAppear(index: 0)
+                            GlanceTargetHistoryCard()
+                                .staggeredAppear(index: 1)
+                        }
                         // The Charge / Effort / Rest trio, presented in NOOP's pip language.
                         weekInReview(charge: recovery, effort: strain, rest: rest)
                             .staggeredAppear(index: 1)
