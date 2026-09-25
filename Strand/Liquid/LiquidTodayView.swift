@@ -92,6 +92,12 @@ struct LiquidTodayView: View {
     @State private var guideSection: ScoreSection?
     /// #2463 Simple view: the Charge ring opens "what shaped it" for the wearer's own night.
     @State private var showChargeWhy = false
+    /// #2463 Simple view: the Effort and Rest rings open their own sheets, as Charge does.
+    @State private var showEffortWhy = false
+    @State private var showRestWhy = false
+    /// The window the hero's Effort covers, resolved in load(), so the Effort sheet's zone time
+    /// describes the same stretch as the score.
+    @State private var cachedEffortWindow: (from: Int, to: Int)?
     /// The night the Charge breakdown explains, resolved ONCE in load() with the same rule classic Today
     /// uses (`lastScoredRecoveryDay ?? displayDay`), so both screens attribute the same night.
     @State private var cachedChargeBreakdownRow: DailyMetric?
@@ -360,7 +366,12 @@ struct LiquidTodayView: View {
                     // nothing and keeps its slot in the saved order.
                     ForEach(sectionOrder) { section in
                         switch section {
-                        case .hero: heroCard
+                        case .hero:
+                            heroCard
+                            if simpleView && selectedDayOffset == 0 {
+                                EffortTargetCard(effort: heroEffortDisplay, band: effortTargetBand,
+                                                 scale: effortScale, onOpen: { showEffortWhy = true })
+                            }
                         case .liveSession: if liveSessionsBeta { liveSessionStartRow }
                         case .synthesis: synthesisSection
                         case .keyMetrics: keyMetricsSection
@@ -466,6 +477,14 @@ struct LiquidTodayView: View {
             await load()
         }
         .sheet(isPresented: $showChargeWhy) { chargeWhySheet }
+        .sheet(isPresented: $showEffortWhy) {
+            SimpleEffortSheet(effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
+                              from: cachedEffortWindow?.from ?? 0, to: cachedEffortWindow?.to ?? 0,
+                              onClose: { showEffortWhy = false })
+        }
+        .sheet(isPresented: $showRestWhy) {
+            SimpleRestSheet(restScore: restScore, day: displayDay, onClose: { showRestWhy = false })
+        }
         .sheet(item: $guideSection) { section in
             NavigationStack { ScoringGuideView(initialSection: section, onClose: { guideSection = nil }) }
         }
@@ -707,17 +726,19 @@ struct LiquidTodayView: View {
             // one decimal on the compressed 0–21 axis to match the app-wide `effortDisplay` convention
             // (12.6, not a rounded "13"); the 0–100 hero stays a whole number as before.
             HeroScoreCell(label: String(localized: "Effort"),
-                          score: effortStrain(displayDay).map { UnitFormatter.effortValue($0, scale: effortScale) },
+                          score: heroEffortDisplay,
                           tint: StrandPalette.effortColor, animated: dataLoaded,
                           onGuide: { guideSection = .effort },
                           maxValue: effortScale == .whoop ? 21 : 100,
                           decimals: effortScale == .whoop ? 1 : 0,
                           detailRoute: .metric(HeroRingMetric.effort),
-                          simple: simpleView)
+                          simple: simpleView,
+                          onOpen: simpleView ? { showEffortWhy = true } : nil)
             HeroScoreCell(label: String(localized: "Rest"), score: restScore, tint: StrandPalette.restColor,
                           animated: dataLoaded, onGuide: { guideSection = .rest },
                           detailRoute: .metric(HeroRingMetric.rest),
-                          simple: simpleView)
+                          simple: simpleView,
+                          onOpen: simpleView ? { showRestWhy = true } : nil)
                 .overlay(alignment: .top) {
                     if let sourceLabel = heroSourceLabel {
                         SourceBadge("\(sourceLabel)", tint: StrandPalette.textSecondary)
@@ -760,10 +781,11 @@ struct LiquidTodayView: View {
                                     .foregroundStyle(StrandPalette.textSecondary)
                             }
                             if let breakdown, !breakdown.drivers.isEmpty {
+                                // No `skinTempRel`: the skin-temperature driver row already states the
+                                // deviation, and the separate relative row would show the same fact a
+                                // second time in different words.
                                 ChargeBreakdownSection(drivers: breakdown.drivers,
-                                                       confidence: breakdown.confidence,
-                                                       skinTempRel: RecoveryScorer.skinTempRelative(
-                                                           deviationC: row?.skinTempDevC))
+                                                       confidence: breakdown.confidence)
                             } else {
                                 Text(verbatim: chargeDisplay.calibrationDetail
                                      ?? String(localized: "No scored night to break down yet. Once a night is scored, this shows what raised or lowered your Charge."))
@@ -774,13 +796,13 @@ struct LiquidTodayView: View {
                         }
                     }
                     NavigationLink(value: TabRoute.metric(HeroRingMetric.charge)) {
-                        chargeWhyLinkRow(String(localized: "See your Charge over time"), icon: "chart.line.uptrend.xyaxis")
+                        SimpleSheetLinkRow(title: String(localized: "See your Charge over time"), icon: "chart.line.uptrend.xyaxis")
                     }
                     .buttonStyle(.plain)
                     NavigationLink {
                         ScoringGuideView(initialSection: .charge, onClose: { showChargeWhy = false })
                     } label: {
-                        chargeWhyLinkRow(String(localized: "How Charge is scored"), icon: "info.circle")
+                        SimpleSheetLinkRow(title: String(localized: "How Charge is scored"), icon: "info.circle")
                     }
                     .buttonStyle(.plain)
                 }
@@ -788,7 +810,10 @@ struct LiquidTodayView: View {
                 .padding(.vertical, NoopMetrics.space4)
             }
             .background(StrandPalette.surfaceBase.ignoresSafeArea())
-            .navigationTitle(Text("What shaped your Charge"))
+            .navigationTitle(Text("Charge"))
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .tabRouteDestinations()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -799,24 +824,16 @@ struct LiquidTodayView: View {
         }
     }
 
-    /// One tappable row under the Charge breakdown.
-    private func chargeWhyLinkRow(_ title: String, icon: String) -> some View {
-        HStack(spacing: NoopMetrics.space3) {
-            Image(systemName: icon)
-                .foregroundStyle(StrandPalette.accent)
-                .accessibilityHidden(true)
-            Text(verbatim: title)
-                .font(StrandFont.body)
-                .foregroundStyle(StrandPalette.textPrimary)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textTertiary)
-                .accessibilityHidden(true)
-        }
-        .padding(NoopMetrics.cardPadding)
-        .background(NoopPanelSurface(cornerRadius: 18))
-        .contentShape(Rectangle())
+
+    /// The hero's Effort on the wearer's scale — one definition for the ring, the target card and the
+    /// Effort sheet, so they cannot show different numbers.
+    private var heroEffortDisplay: Double? {
+        effortStrain(displayDay).map { UnitFormatter.effortValue($0, scale: effortScale) }
+    }
+
+    /// Today's Effort target band on the wearer's scale, from the same Charge the hero shows.
+    private var effortTargetBand: ClosedRange<Double>? {
+        EffortTarget.band(charge: chargeDisplay.pct, scale: effortScale)
     }
 
     // MARK: - Heart rate
@@ -1755,6 +1772,7 @@ struct LiquidTodayView: View {
         let from = cycleMarkers.last(where: { $0.day == selectedDayKey }).map { Int($0.value) } ?? calendarFrom
         let toExclusive = cycleMarkers.last(where: { $0.day == nextDayKey }).map { Int($0.value) } ?? calendarTo
         let to = max(from, toExclusive - 1)
+        cachedEffortWindow = (from, to)
         // #1001: in-progress Effort for TODAY, over the SAME window resolved just above (the day-cycle
         // onset when that mode is on, else calendar midnight → now) with the identical params the daily
         // pass uses, so the live number matches what the engine will eventually persist. Below

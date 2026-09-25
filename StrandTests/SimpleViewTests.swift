@@ -7,19 +7,19 @@ final class SimpleViewTests: XCTestCase {
 
     // MARK: - SimpleViewPrefs.order
 
-    func testKeepsOnlyTheThreeSectionsInTheSavedOrder() {
-        let full: [TodaySection] = [.keyMetrics, .workouts, .heartRate, .hero, .synthesis, .journal]
-        XCTAssertEqual(SimpleViewPrefs.order(fullOrder: full), [.workouts, .hero, .synthesis])
+    func testKeepsOnlyTheSimpleSectionsInTheSavedOrder() {
+        let full: [TodaySection] = [.keyMetrics, .workouts, .heartRate, .recoveryVitals, .hero, .synthesis, .journal]
+        XCTAssertEqual(SimpleViewPrefs.order(fullOrder: full), [.workouts, .recoveryVitals, .hero, .synthesis])
     }
 
     func testAppendsAKeptSectionMissingFromAnOldSavedOrder() {
         // A saved order from before a section existed must not leave Simple view without it.
         XCTAssertEqual(SimpleViewPrefs.order(fullOrder: [.synthesis, .keyMetrics]),
-                       [.synthesis, .hero, .workouts])
+                       [.synthesis, .hero, .recoveryVitals, .workouts])
     }
 
-    func testEmptyOrderYieldsTheCanonicalThree() {
-        XCTAssertEqual(SimpleViewPrefs.order(fullOrder: []), [.hero, .synthesis, .workouts])
+    func testEmptyOrderYieldsTheCanonicalSet() {
+        XCTAssertEqual(SimpleViewPrefs.order(fullOrder: []), [.hero, .synthesis, .recoveryVitals, .workouts])
     }
 
     // MARK: - StrapSetupGuide
@@ -93,5 +93,31 @@ final class SimpleViewTests: XCTestCase {
         XCTAssertEqual(StrapSetupGuide.progress(items, defaults: d).on, 0)
         d.set(true, forKey: PuffinExperiment.defaultsKey)
         XCTAssertEqual(StrapSetupGuide.progress(items, defaults: d).on, 1)
+    }
+
+    // MARK: - EffortTarget
+
+    func testTargetBandFollowsTheApprovedRecoveryMapping() {
+        XCTAssertEqual(EffortTarget.band(charge: 80, scale: .whoop), 14...18)
+        XCTAssertEqual(EffortTarget.band(charge: 50, scale: .whoop), 10...14)
+        XCTAssertEqual(EffortTarget.band(charge: 20, scale: .whoop), 4...10)
+        XCTAssertNil(EffortTarget.band(charge: nil, scale: .whoop))
+    }
+
+    /// The 0–100 band is the 0–21 band divided back out of the display factor, so a value shown on
+    /// either scale sits at the same place against its band.
+    func testHundredScaleBandIsTheExactInverseOfTheDisplayFactor() throws {
+        let b = try XCTUnwrap(EffortTarget.band(charge: 80, scale: .hundred))
+        XCTAssertEqual(b.lowerBound * UnitFormatter.effortScaleFactor, 14, accuracy: 1e-9)
+        XCTAssertEqual(b.upperBound * UnitFormatter.effortScaleFactor, 18, accuracy: 1e-9)
+    }
+
+    func testStanding() {
+        XCTAssertEqual(EffortTarget.standing(effort: 6, band: 10...14), .below(toGo: 4))
+        XCTAssertEqual(EffortTarget.standing(effort: 10, band: 10...14), .within)
+        XCTAssertEqual(EffortTarget.standing(effort: 14, band: 10...14), .within)
+        XCTAssertEqual(EffortTarget.standing(effort: 15, band: 10...14), .above)
+        XCTAssertNil(EffortTarget.standing(effort: nil, band: 10...14))
+        XCTAssertNil(EffortTarget.standing(effort: 6, band: nil))
     }
 }
