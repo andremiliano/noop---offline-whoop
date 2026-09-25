@@ -59,8 +59,7 @@ struct GlanceScoreCard<Rings: View>: View {
                                         .foregroundStyle(StrandPalette.textPrimary)
                                 }
                             }
-                            EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort,
-                                            decimals: decimals)
+                            EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort)
                             EffortTargetStatusText(standing: EffortTarget.standing(effort: effort, band: band),
                                                    hasBand: band != nil, decimals: decimals)
                         }

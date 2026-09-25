@@ -14,8 +14,9 @@ struct EffortTargetBar: View {
     let axisMax: Double
     let band: ClosedRange<Double>?
     let effort: Double?
-    /// Decimal places for the edge numbers: 1 on the 0–21 scale, 0 on 0–100.
-    var decimals: Int = 0
+    /// Decimal places for the band-edge numbers under the track (1 on the 0–21 scale, 0 on 0–100), or
+    /// nil for none — where the range is already printed beside the bar, a second copy is noise.
+    var decimals: Int? = nil
 
     var body: some View {
         VStack(spacing: 4) {
@@ -36,7 +37,7 @@ struct EffortTargetBar: View {
                 }
             }
             .frame(height: 10)
-            if let band {
+            if let band, decimals != nil {
                 GeometryReader { geo in
                     ZStack(alignment: .topLeading) {
                         edge(band.lowerBound, geo.size.width)
@@ -51,7 +52,7 @@ struct EffortTargetBar: View {
 
     /// A band edge's number, centred under its point on the track and kept inside the card.
     private func edge(_ v: Double, _ width: CGFloat) -> some View {
-        let f = "%.\(decimals)f"
+        let f = "%.\(decimals ?? 0)f"
         return Text(verbatim: String(format: f, locale: AppLanguage.activeLocale, v))
             .font(StrandFont.captionNumber)
             .foregroundStyle(StrandPalette.textSecondary)
@@ -76,8 +77,8 @@ struct GlanceTargetArc: View {
         let lo = max(0, min(1, band.lowerBound / maxValue)), hi = max(0, min(1, band.upperBound / maxValue))
         Circle()
             .trim(from: lo, to: max(lo, hi))
-            .stroke(StrandPalette.effortBright.opacity(0.85),
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, dash: [lineWidth * 0.2, lineWidth * 1.4]))
+            .stroke(StrandPalette.effortBright.opacity(0.55),
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
             .rotationEffect(.degrees(-90))
             .accessibilityHidden(true)
     }
