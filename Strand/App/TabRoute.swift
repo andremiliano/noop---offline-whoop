@@ -35,7 +35,7 @@ enum TabRoute: Hashable {
     case health
     case hydration
     case coupled
-    /// The strap setup guide (#2463/#2465), a first hop from Simple view's Today card. Its own links into
+    /// The strap setup guide (#2463/#2465), a first hop from Glance's Today card. Its own links into
     /// Settings / Test Centre / Alarms are deeper hops and stay closure-based, per the note above.
     case strapSetupGuide
 }

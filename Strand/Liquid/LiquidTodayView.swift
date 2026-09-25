@@ -115,15 +115,10 @@ struct LiquidTodayView: View {
     // drag-to-reorder rows); every section always renders (decode inserts a missing one at its default spot).
     @AppStorage(TodayLayoutPrefs.orderKey) private var sectionOrderRaw = ""
     @AppStorage(TodayLayoutPrefs.hiddenKey) private var hiddenSectionsRaw = ""
-    /// #2463: the opt-in Simple view. Presentation only — see `SimpleViewPrefs`.
-    @AppStorage(SimpleViewPrefs.enabledKey) private var simpleView = false
+    /// #2463: the opt-in Glance layout. Presentation only — see `GlanceLayoutPrefs`.
+    @AppStorage(GlanceLayoutPrefs.enabledKey) private var glance = false
     private var sectionOrder: [TodaySection] {
-        if simpleView {
-            // The hidden filter is deliberately not applied: Simple view's three sections always show.
-            return SimpleViewPrefs.order(fullOrder: TodayLayoutPrefs.visibleOrder(orderRaw: sectionOrderRaw,
-                                                                                  hiddenRaw: ""))
-        }
-        return TodayLayoutPrefs.visibleOrder(orderRaw: sectionOrderRaw, hiddenRaw: hiddenSectionsRaw)
+        TodayLayoutPrefs.visibleOrder(orderRaw: sectionOrderRaw, hiddenRaw: hiddenSectionsRaw)
     }
     // #430 parity: the Key-Metrics grid honours the SAME editor selection/order + Detailed-tiles switch as
     // Android (byte-identical @AppStorage keys). `kSparks` holds the trailing-30-day series the detailed
@@ -363,14 +358,12 @@ struct LiquidTodayView: View {
                     // sheet (the header's up/down button; native drag rows); the order persists under the
                     // byte-identical "today.sectionOrder" key Android uses. A gated-off Start-session renders
                     // nothing and keeps its slot in the saved order.
+                    if glance {
+                        glanceSections
+                    } else {
                     ForEach(sectionOrder) { section in
                         switch section {
-                        case .hero:
-                            heroCard
-                            if simpleView && selectedDayOffset == 0 {
-                                EffortTargetCard(effort: heroEffortDisplay, band: effortTargetBand,
-                                                 scale: effortScale, onOpen: { showEffortWhy = true })
-                            }
+                        case .hero: heroCard
                         case .liveSession: if liveSessionsBeta { liveSessionStartRow }
                         case .synthesis: synthesisSection
                         case .keyMetrics: keyMetricsSection
@@ -391,6 +384,7 @@ struct LiquidTodayView: View {
                         case .addedCards: if selectedDayOffset == 0 { hostedCardsSection }
                         }
                     }
+                    }
                     // Opt-in "looks like a workout?" suggestion, dropped in the liquid Home rewrite. Its
                     // Settings toggle (PuffinExperiment.autoDetectWorkoutsKey) had no visible effect on the
                     // DEFAULT screen: the card's only mount was classic TodayView, so a user could switch
@@ -399,10 +393,10 @@ struct LiquidTodayView: View {
                     // Self-gates on the toggle AND on the detector finding an unsaved, un-dismissed window,
                     // so it renders nothing by default.
                     AutoWorkoutCard()
-                    // #2463 Simple view: the setup guide takes the place of the provenance section, which
-                    // is reference detail rather than something a Simple-view wearer acts on. Today only,
-                    // like the other action cards above.
-                    if simpleView {
+                    // #2463 Glance: the setup guide takes the place of the provenance section, which is
+                    // reference detail rather than something to act on. Today only, like the other action
+                    // cards above.
+                    if glance {
                         if selectedDayOffset == 0 { StrapSetupSummaryCard() }
                     } else {
                         dataSourcesSection
@@ -471,7 +465,7 @@ struct LiquidTodayView: View {
         .liquidMediumHaptic(trigger: pullHaptic)
         // hydrationSeq joins the id so logging a drink re-reads the card immediately, the same trigger set
         // classic TodayView's reloadHydration() uses.
-        .task(id: "\(repo.refreshSeq)-\(selectedDayOffset)-\(repo.hydrationSeq)-\(hydrationEnabled)-\(dayCycleModeRaw)") {
+        .task(id: "\(repo.refreshSeq)-\(selectedDayOffset)-\(repo.hydrationSeq)-\(hydrationEnabled)-\(dayCycleModeRaw)-\(glance)") {
             DashboardCardPrefs.migrateLegacyStepsAverage()
             await load()
         }
@@ -719,6 +713,15 @@ struct LiquidTodayView: View {
     }
 
     private var heroCard: some View {
+        heroRings
+            .padding(.vertical, NoopMetrics.space4)
+            .padding(.horizontal, NoopMetrics.space3)
+            .background(NoopPanelSurface(cornerRadius: 26, elevated: true, surfaceOpacity: cardOpacity))
+    }
+
+    /// The Charge, Effort and Rest rings — the classic hero card's content, and the top of Glance's
+    /// score card.
+    private var heroRings: some View {
         HStack(alignment: .top, spacing: 4) {
             // #543 carry: an unscored today shows the last scored night's REAL Charge (labelled as prior by
             // the state pill) rather than an empty vessel, matching the classic Today, the widget/watch/Live
@@ -728,8 +731,8 @@ struct LiquidTodayView: View {
                           tint: chargeDisplay.pct.map { StrandPalette.recoveryColor($0) } ?? StrandPalette.chargeColor,
                           animated: dataLoaded, onGuide: { guideSection = .charge },
                           detailRoute: .metric(HeroRingMetric.charge),
-                          simple: simpleView,
-                          onOpen: simpleView ? { showChargeWhy = true } : nil)
+                          simple: glance,
+                          onOpen: glance ? { showChargeWhy = true } : nil)
             // #45: the hero Effort must honour the user's Effort scale like every other Effort read-out.
             // Show the value on the chosen scale (0–100 or WHOOP 0–21) with the matching vessel max, and
             // one decimal on the compressed 0–21 axis to match the app-wide `effortDisplay` convention
@@ -741,13 +744,13 @@ struct LiquidTodayView: View {
                           maxValue: effortScale == .whoop ? 21 : 100,
                           decimals: effortScale == .whoop ? 1 : 0,
                           detailRoute: .metric(HeroRingMetric.effort),
-                          simple: simpleView,
-                          onOpen: simpleView ? { showEffortWhy = true } : nil)
+                          simple: glance,
+                          onOpen: glance ? { showEffortWhy = true } : nil)
             HeroScoreCell(label: String(localized: "Rest"), score: restScore, tint: StrandPalette.restColor,
                           animated: dataLoaded, onGuide: { guideSection = .rest },
                           detailRoute: .metric(HeroRingMetric.rest),
-                          simple: simpleView,
-                          onOpen: simpleView ? { showRestWhy = true } : nil)
+                          simple: glance,
+                          onOpen: glance ? { showRestWhy = true } : nil)
                 .overlay(alignment: .top) {
                     if let sourceLabel = heroSourceLabel {
                         SourceBadge("\(sourceLabel)", tint: StrandPalette.textSecondary)
@@ -760,9 +763,41 @@ struct LiquidTodayView: View {
                     }
                 }
         }
-        .padding(.vertical, NoopMetrics.space4)
-        .padding(.horizontal, NoopMetrics.space3)
-        .background(NoopPanelSurface(cornerRadius: 26, elevated: true, surfaceOpacity: cardOpacity))
+    }
+
+    // MARK: - Glance (#2463)
+
+    /// Glance's Today: one score card, then the day's stress, the Health Monitor, training load and the
+    /// day's timeline. A past day keeps the score card, the classic vitals and that day's timeline, since
+    /// the stress curve and the Health Monitor describe now rather than a chosen day.
+    @ViewBuilder private var glanceSections: some View {
+        GlanceScoreCard(synthesis: chargeDisplay.calibrationDetail ?? synthLine, note: glanceNote,
+                        effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
+                        showsTarget: selectedDayOffset == 0, cardOpacity: cardOpacity,
+                        onOpenEffort: { showEffortWhy = true }) { heroRings }
+        if selectedDayOffset == 0 {
+            GlanceSectionTitle(title: String(localized: "Stress"))
+            GlanceStressCard(hours: hostedStressHours)
+            GlanceSectionTitle(title: String(localized: "Health Monitor"))
+            GlanceHealthMonitor(sleepMinutes: displayDay?.totalSleepMin, dayKey: selectedDayKey,
+                                onOpenSleep: { showRestWhy = true })
+        } else {
+            recoveryVitalsSection
+        }
+        GlanceSectionTitle(title: String(localized: "Training Load"))
+        TrainingLoadCard(days: repo.days)
+        GlanceSectionTitle(title: String(localized: "Timeline"))
+        GlanceTimeline(workouts: workouts, scale: effortScale,
+                       night: GlanceHistory.night(repo.sleeps, dayKey: selectedDayKey),
+                       restScore: restScore, onOpenNight: { showRestWhy = true })
+        if selectedDayOffset == 0 { JournalReminderCard() }
+    }
+
+    /// The line under Glance's synthesis: why calibration is not moving, else the calm-day Effort note —
+    /// the same two lines the classic synthesis card carries.
+    private var glanceNote: String? {
+        chargeDisplay.calibrationReason(dayKeys: repo.days.map(\.day), nightlyHrv: repo.days.map(\.avgHrv),
+                                        today: Repository.logicalDayKey(Date())) ?? effortZeroNote
     }
 
     /// The hero's Effort on the wearer's scale — one definition for the ring, the target card and the
@@ -1907,7 +1942,7 @@ struct LiquidTodayView: View {
         }
 
         // #2040: and today's stress, on the same "only when hosted" rule.
-        hostedStressHours = HostedCardPrefs.decodeEnabled(hostedCardsRaw).contains(.stressToday)
+        hostedStressHours = (glance || HostedCardPrefs.decodeEnabled(hostedCardsRaw).contains(.stressToday))
             ? (await StressDayCurve.today(
                 repo: repo,
                 personalBaseline: PuffinExperiment.stressPersonalBaselineEnabled

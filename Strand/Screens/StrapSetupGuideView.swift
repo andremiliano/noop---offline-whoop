@@ -211,7 +211,7 @@ private struct SetupProgressBar: View {
     }
 }
 
-/// The Today entry to the guide in Simple view: the wearer's own strap, how much is on, and the first
+/// The Today entry to the guide in Glance: the wearer's own strap, how much is on, and the first
 /// things worth turning on. Taps through to `StrapSetupGuideView`.
 struct StrapSetupSummaryCard: View {
     @AppStorage("selectedWhoopModel") private var selectedWhoopModelRaw = WhoopModel.whoop4.rawValue

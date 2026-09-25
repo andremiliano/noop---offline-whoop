@@ -186,7 +186,7 @@ struct GlanceChargePage: View {
             GlanceSynthesisCard(text: synthesis)
             if charge == nil {
                 NavigationLink { StrapSetupGuideView() } label: {
-                    SimpleSheetLinkRow(title: String(localized: "Why is there no Charge?"), icon: "exclamationmark.circle")
+                    GlanceLinkRow(title: String(localized: "Why is there no Charge?"), icon: "exclamationmark.circle")
                 }
                 .buttonStyle(.plain)
             }
@@ -355,7 +355,7 @@ struct GlanceRestPage: View {
                                value: night.map { GlanceFormat.time($0.endTs) })
             }
             NavigationLink(value: TabRoute.sleep) {
-                SimpleSheetLinkRow(title: String(localized: "See your sleep"), icon: "bed.double")
+                GlanceLinkRow(title: String(localized: "See your sleep"), icon: "bed.double")
             }
             .buttonStyle(.plain)
 
@@ -380,7 +380,7 @@ struct GlanceRestPage: View {
                              _ column: @escaping (DailyMetric) -> Double?) -> some View {
         let value = day.flatMap(column)
         let trend = GlanceHistory.trend(days: repo.days, through: dayKey, value: value, column)
-        return trendLink(key, icon: icon, title: title, value: value.map { SimpleDuration.text(minutes: $0) }, trend)
+        return trendLink(key, icon: icon, title: title, value: value.map { GlanceDuration.text(minutes: $0) }, trend)
     }
 
     private func trendLink(_ key: String, icon: String, title: String, value: String?,

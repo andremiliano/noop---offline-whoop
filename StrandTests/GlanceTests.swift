@@ -1,31 +1,14 @@
 import XCTest
 @testable import Strand
 
-/// #2463 Simple view and the strap setup guide. Both are pure, so what Simple view shows and what the
-/// guide tells each strap to turn on are pinned here rather than read off the screen.
-final class SimpleViewTests: XCTestCase {
-
-    // MARK: - SimpleViewPrefs.order
-
-    func testKeepsOnlyTheSimpleSectionsInTheSavedOrder() {
-        let full: [TodaySection] = [.keyMetrics, .workouts, .heartRate, .recoveryVitals, .hero, .synthesis, .journal]
-        XCTAssertEqual(SimpleViewPrefs.order(fullOrder: full), [.workouts, .recoveryVitals, .hero, .synthesis])
-    }
-
-    func testAppendsAKeptSectionMissingFromAnOldSavedOrder() {
-        // A saved order from before a section existed must not leave Simple view without it.
-        XCTAssertEqual(SimpleViewPrefs.order(fullOrder: [.synthesis, .keyMetrics]),
-                       [.synthesis, .hero, .recoveryVitals, .workouts])
-    }
-
-    func testEmptyOrderYieldsTheCanonicalSet() {
-        XCTAssertEqual(SimpleViewPrefs.order(fullOrder: []), [.hero, .synthesis, .recoveryVitals, .workouts])
-    }
+/// #2463 Glance and the strap setup guide. The pure parts — what the guide tells each strap to turn on,
+/// the Effort target and the usual-range reads — are pinned here rather than read off the screen.
+final class GlanceTests: XCTestCase {
 
     // MARK: - StrapSetupGuide
 
     private func defaults() -> UserDefaults {
-        let name = "SimpleViewTests.\(UUID().uuidString)"
+        let name = "GlanceTests.\(UUID().uuidString)"
         let d = UserDefaults(suiteName: name)!
         d.removePersistentDomain(forName: name)
         return d
@@ -155,5 +138,13 @@ final class SimpleViewTests: XCTestCase {
         XCTAssertEqual(t.values.count, 10)
         XCTAssertEqual(t.result.status, .usual)
         XCTAssertEqual(t.result.band?.upperBound ?? 0, 7, accuracy: 1e-9)
+    }
+}
+
+extension GlanceTests {
+    func testMonitorPositionIsTheValueBetweenTheRecentExtremes() {
+        XCTAssertEqual(GlanceMonitorTile.position(of: 60, in: [50, 70, 55]) ?? -1, 0.5, accuracy: 1e-9)
+        XCTAssertNil(GlanceMonitorTile.position(of: 60, in: [60, 60]))
+        XCTAssertNil(GlanceMonitorTile.position(of: nil, in: [50, 70]))
     }
 }

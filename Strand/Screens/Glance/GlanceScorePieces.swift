@@ -3,7 +3,8 @@ import StrandDesign
 import StrandAnalytics
 import WhoopStore
 
-// Glance's score pieces (#2463): the Effort target card and bar, and the link rows the score pages use.
+// Glance's score pieces (#2463): the Effort target bar and its status line, and the link row the score
+// pages use.
 // Every figure arrives already resolved by the caller from the same state the hero reads; nothing is
 // computed afresh, so these pieces and the rest of Today cannot disagree.
 
@@ -67,50 +68,10 @@ struct EffortTargetStatusText: View {
     }
 }
 
-/// Today's Effort against the range worth aiming for, given today's Charge. Taps through to the Effort
-/// sheet.
-struct EffortTargetCard: View {
-    let effort: Double?
-    let band: ClosedRange<Double>?
-    let scale: EffortScale
-    let onOpen: () -> Void
-
-    private var decimals: Int { scale == .whoop ? 1 : 0 }
-
-    var body: some View {
-        Button(action: onOpen) {
-            NoopCard(tint: StrandPalette.effortColor) {
-                VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Today's Effort target").strandOverline()
-                        Spacer()
-                        if let band {
-                            Text(verbatim: rangeText(band))
-                                .font(StrandFont.number(17))
-                                .foregroundStyle(StrandPalette.textPrimary)
-                        }
-                    }
-                    EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort)
-                    EffortTargetStatusText(standing: EffortTarget.standing(effort: effort, band: band),
-                                           hasBand: band != nil, decimals: decimals)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityHint(Text("Opens the trend and readings"))
-    }
-
-    private func rangeText(_ b: ClosedRange<Double>) -> String {
-        let f = "%.\(decimals)f"
-        return String(format: "\(f)–\(f)", locale: AppLanguage.activeLocale, b.lowerBound, b.upperBound)
-    }
-}
-
 // MARK: - Shared pieces
 
 /// A tappable row under a score's breakdown.
-struct SimpleSheetLinkRow: View {
+struct GlanceLinkRow: View {
     let title: String
     let icon: String
 
@@ -134,20 +95,8 @@ struct SimpleSheetLinkRow: View {
     }
 }
 
-/// A `SimpleSheetLinkRow` pushing a `TabRoute` inside the sheet's own stack.
-struct SimpleSheetLink: View {
-    let title: String
-    let icon: String
-    let route: TabRoute
-
-    var body: some View {
-        NavigationLink(value: route) { SimpleSheetLinkRow(title: title, icon: icon) }
-            .buttonStyle(.plain)
-    }
-}
-
 /// Minutes as a localised "7h 32m", using the system's unit words so no new strings are introduced.
-enum SimpleDuration {
+enum GlanceDuration {
     static func text(minutes: Double) -> String {
         let f = DateComponentsFormatter()
         f.allowedUnits = minutes >= 60 ? [.hour, .minute] : [.minute]

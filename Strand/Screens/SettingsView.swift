@@ -1833,7 +1833,7 @@ struct SettingsView: View {
     /// split out the same way (see `spo2CandidateCard`'s comment) — it is NOT WHOOP-5/MG-specific.
     @ViewBuilder private var experimentalCard: some View {
         liquidTodayCard
-        simpleViewCard
+        glanceLayoutCard
         liveSessionsCard
         // WHOOP 5/MG protocol research now lives in Test Centre. Everyday Settings no longer carries
         // a second copy; the persisted keys and reversible disable actions remain unchanged there.
@@ -1845,8 +1845,8 @@ struct SettingsView: View {
     /// Opt-in liquid Today redesign (default ON in this build). Off falls back to the
     /// classic dashboard immediately, no rebuild. Same data either way.
     @AppStorage("noop.liquidTodayEnabled") private var liquidTodayEnabled = true
-    /// #2463: the opt-in Simple view (`SimpleViewPrefs`).
-    @AppStorage(SimpleViewPrefs.enabledKey) private var simpleViewEnabled = false
+    /// #2463: the opt-in Glance layout (`GlanceLayoutPrefs`).
+    @AppStorage(GlanceLayoutPrefs.enabledKey) private var glanceLayoutEnabled = false
     private var liquidTodayCard: some View {
         SettingsSection(
             icon: "drop.fill",
@@ -1869,23 +1869,23 @@ struct SettingsView: View {
         }
     }
 
-    /// #2463 Simple view: three scores up front, each opening the wearer's own data, plus the strap setup
-    /// guide. Presentation only; nothing it shows is computed differently.
-    private var simpleViewCard: some View {
+    /// #2463 Glance: Today laid out to read at a glance, every score and vital opening its data, plus the
+    /// strap setup guide. Presentation only; nothing it shows is computed differently.
+    private var glanceLayoutCard: some View {
         SettingsSection(
             icon: "circle.grid.3x3.fill",
-            title: "Simple view",
-            blurb: "Today shows only Charge, Effort and Rest, a one-line summary and today's workouts. Tap a score to see what shaped it. Everything else is still in More."
+            title: "Glance layout",
+            blurb: "Today reads at a glance: your scores with the day's summary and Effort target, stress, a Health Monitor of your vitals, training load and a timeline of the day. Tap any score or vital to open what is behind it."
         ) {
             VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) {
-                Toggle(isOn: $simpleViewEnabled) {
-                    Text("Simple view")
+                Toggle(isOn: $glanceLayoutEnabled) {
+                    Text("Glance layout")
                         .font(StrandFont.subhead)
                         .foregroundStyle(StrandPalette.textPrimary)
                 }
                 .toggleStyle(.switch)
                 .tint(StrandPalette.accent)
-                Text("Applies to the Liquid Today screen. Same numbers as the full view, fewer of them.")
+                Text("Applies to the Liquid Today screen. Same numbers as the classic layout, arranged differently.")
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)

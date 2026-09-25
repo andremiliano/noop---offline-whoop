@@ -1,6 +1,6 @@
 import Foundation
 
-/// Today's Effort target (#2463 Simple view): the range of Effort worth aiming for given today's Charge,
+/// Today's Effort target (#2463 Glance): the range of Effort worth aiming for given today's Charge,
 /// so the day has a sensible goal rather than "as high as possible".
 ///
 /// The band itself is NOOP's existing, approved recovery → optimal-strain mapping
