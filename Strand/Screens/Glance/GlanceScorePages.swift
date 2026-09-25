@@ -423,14 +423,7 @@ struct GlanceEffortPage: View {
             if !workouts.isEmpty {
                 GlanceSectionTitle(title: String(localized: "Timeline"))
                 ForEach(workouts, id: \.startTs) { w in
-                    NavigationLink { TabRoute.workouts.destination } label: {
-                        GlanceTimelineRow(glyph: .workout(w.sport),
-                                          badge: w.strain.map { UnitFormatter.effortDisplay($0, scale: scale) },
-                                          tint: StrandPalette.effortColor,
-                                          title: WorkoutSource.displaySport(w.sport),
-                                          subtitle: GlanceFormat.time(w.startTs))
-                    }
-                    .buttonStyle(LiquidPressStyle())
+                    GlanceWorkoutTimelineRow(workout: w, scale: scale)
                 }
             }
 

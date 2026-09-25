@@ -228,7 +228,17 @@ struct GlanceTrendSections: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: series.title))
+        .accessibilityValue(Text(verbatim: accessibilitySummary(rows: rows, average: average)))
+    }
+
+    /// The chart in words for VoiceOver: the latest day and the average over the shown range.
+    private func accessibilitySummary(rows: [Row], average: Double?) -> String {
+        guard let last = rows.last else { return String(localized: "No data") }
+        let latest = String(localized: "Latest \(series.format(last.value)) on \(Self.dateText(last.date))")
+        guard let average else { return latest }
+        return latest + ". " + String(localized: "Average \(series.format(average))")
     }
 
     /// Selection without animation, so scrubbing never re-runs the line's draw-on.

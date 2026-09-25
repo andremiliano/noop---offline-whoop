@@ -38,6 +38,8 @@ enum TabRoute: Hashable {
     /// The strap setup guide (#2463/#2465), a first hop from Glance's Today card. Its own links into
     /// Settings / Test Centre / Alarms are deeper hops and stay closure-based, per the note above.
     case strapSetupGuide
+    /// Insights, from Glance's "What goes with your Charge" card (#2463).
+    case insights
 }
 
 extension TabRoute {
@@ -73,6 +75,7 @@ extension TabRoute {
         case .hydration: HydrationView()
         case .coupled: CoupledView()
         case .strapSetupGuide: StrapSetupGuideView()
+        case .insights: InsightsView()
         }
     }
 }

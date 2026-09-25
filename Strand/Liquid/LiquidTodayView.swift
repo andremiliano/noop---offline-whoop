@@ -753,9 +753,14 @@ struct LiquidTodayView: View {
     /// the stress curve and the Health Monitor describe now rather than a chosen day.
     @ViewBuilder private var glanceSections: some View {
         GlanceScoreCard(synthesis: chargeDisplay.calibrationDetail ?? synthLine, note: glanceNote,
+                        plan: selectedDayOffset == 0 ? glancePlanLine : nil,
                         effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
                         showsTarget: selectedDayOffset == 0, cardOpacity: cardOpacity) { heroRings }
         if selectedDayOffset == 0 {
+            GlanceGettingStartedCard(chargeCalibratingNights: {
+                if case .calibrating(let n) = chargeDisplay { return n }
+                return nil
+            }(), historyDays: repo.days.count)
             GlanceSectionTitle(title: String(localized: "Stress"))
             GlanceStressCard(hours: hostedStressHours)
             if glanceExperimental {
@@ -763,6 +768,11 @@ struct LiquidTodayView: View {
             }
             GlanceSectionTitle(title: String(localized: "Health Monitor"))
             GlanceHealthMonitor(sleepMinutes: displayDay?.totalSleepMin, dayKey: selectedDayKey)
+            if let tonight = glanceTonight {
+                GlanceSectionTitle(title: String(localized: "Tonight"))
+                GlanceTonightCard(plan: tonight)
+            }
+            GlanceChargeLinksCard()
         } else {
             recoveryVitalsSection
         }
@@ -786,6 +796,33 @@ struct LiquidTodayView: View {
                                        wakeTs: GlanceHistory.night(repo.sleeps, dayKey: selectedDayKey)?.endTs,
                                        stressLevels: hostedStressHours.map(\.level),
                                        effort: effortStrain(displayDay), now: Date())
+    }
+
+    /// Tonight's plan from the Sleep tab's debt ledger and the wind-down wake time, when one is set.
+    private var glanceTonight: TonightPlan.Plan? {
+        TonightPlan.plan(ledger: hostedSleepModel?.sleepDebtLedger,
+                         wakeMinutes: WindDownNudge.isEnabled ? { WindDownNudge.wakeMinutes(forWeekday: $0) } : nil,
+                         now: Date())
+    }
+
+    /// The day in one line: the Effort to aim for and tonight's sleep. The range and times are the same
+    /// values the target bar and the Tonight card show, so the line restates them rather than adding
+    /// numbers of its own.
+    private var glancePlanLine: String? {
+        var parts: [String] = []
+        if let b = effortTargetBand {
+            let f = "%.\(effortScale == .whoop ? 1 : 0)f"
+            let range = String(format: "\(f)–\(f)", locale: AppLanguage.activeLocale, b.lowerBound, b.upperBound)
+            parts.append(String(localized: "Aim for \(range) Effort today."))
+        }
+        if let t = glanceTonight {
+            if let asleep = t.asleepBy {
+                parts.append(String(localized: "Be asleep by \(GlanceFormat.time(Int(asleep.timeIntervalSince1970))) tonight."))
+            } else {
+                parts.append(String(localized: "Aim for \(GlanceDuration.text(minutes: t.needMin)) of sleep tonight."))
+            }
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     /// The line under Glance's synthesis: why calibration is not moving, else the calm-day Effort note —
@@ -1943,7 +1980,8 @@ struct LiquidTodayView: View {
         // Sleep tab loads them, then handed to the SAME pure `SleepModel.build`, so a hosted card renders
         // numbers byte-identical to the Sleep tab. Reused by every SleepModel-backed hosted card (built once).
         let sleepOrigin = String(localized: "Sleep")
-        if HostedCardPrefs.decodeEnabled(hostedCardsRaw).contains(where: { $0.origin == sleepOrigin }) {
+        // Glance reads the same model for tonight's plan (the Sleep tab's debt ledger).
+        if glance || HostedCardPrefs.decodeEnabled(hostedCardsRaw).contains(where: { $0.origin == sleepOrigin }) {
             let hostedSessions = await repo.allSleepSessions()
             let hostedHabitual = await repo.habitualMidsleepSec()
             let hostedMotion = await repo.sessionMotions(sessions: hostedSessions)
@@ -2352,9 +2390,13 @@ private struct HeroScoreCell: View {
 
     /// Simple view's single-target cell.
     @ViewBuilder private var simpleCell: some View {
+        // The gauge takes no touches of its own here: its splash tap, even as a simultaneous gesture,
+        // can claim the touch before the wrapping link sees it, which left only the label tappable.
+        // With the gauge inert the whole cell — ring and label — is one target.
         let cell = VStack(spacing: 7) {
             LiquidScoreGauge(score: score, tint: tint, diameter: Self.vesselDiameter, animated: animated,
                              maxValue: maxValue, decimals: decimals, tapPassesThrough: true)
+                .allowsHitTesting(false)
             labelRow
         }
         .contentShape(Rectangle())

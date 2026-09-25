@@ -358,13 +358,8 @@ struct InsightsView: View {
         let entries = await repo.journalEntries()
         // Yes days and NO days, kept apart. A day with no journal row for the question lands in
         // neither, so an unanswered day is never counted as a No (BehaviorInsights.effect).
-        var byBehaviour: [String: Set<String>] = [:]
-        var controlsByBehaviour: [String: Set<String>] = [:]
+        let (byBehaviour, controlsByBehaviour) = Self.behaviourDays(entries)
         var numericByBehaviour: [String: [String: Double]] = [:]
-        for e in entries {
-            if e.answeredYes { byBehaviour[e.question, default: []].insert(e.day) }
-            else { controlsByBehaviour[e.question, default: []].insert(e.day) }
-        }
         // #322: per-question numeric series (question → [day: value]) for numeric journal items. A
         // numeric series is the same [day: value] shape a metric outcome is, so the effect ranker can
         // consume it directly (dose-response lands in the v5 hub). Additive: yes/no-only journals
@@ -394,12 +389,8 @@ struct InsightsView: View {
         var byKey: [String: [String: Double]] = [:]
         var seriesMap: [String: [(day: String, value: Double)]] = [:]
         for key in outcomeKeys {
-            let s = await repo.series(key: key, source: "my-whoop")
-            var dict: [String: Double] = [:]
-            for row in s { dict[row.day] = row.value }
-            for d in mergedDays where dict[d.day] == nil {
-                if let v = Self.dailyOutcome(key: key, day: d) { dict[d.day] = v }
-            }
+            let dict = Self.outcomeDays(key: key, series: await repo.series(key: key, source: "my-whoop"),
+                                        days: mergedDays)
             byKey[key] = dict
             seriesMap[key] = dict.sorted { $0.key < $1.key }.map { (day: $0.key, value: $0.value) }
         }
@@ -476,6 +467,30 @@ struct InsightsView: View {
         loaded = true
         recomputeRanked()
         recomputeRelationships()
+    }
+
+    /// Journal answers as the days each behaviour was logged YES and the days it was logged NO. An
+    /// unanswered day lands in neither, so it is never counted as a No (BehaviorInsights.effect).
+    /// Shared with Glance's Charge card so both read the journal the same way.
+    static func behaviourDays(_ entries: [JournalEntry]) -> (yes: [String: Set<String>], no: [String: Set<String>]) {
+        var yes: [String: Set<String>] = [:], no: [String: Set<String>] = [:]
+        for e in entries {
+            if e.answeredYes { yes[e.question, default: []].insert(e.day) }
+            else { no[e.question, default: []].insert(e.day) }
+        }
+        return (yes, no)
+    }
+
+    /// An outcome's day → value map: the imported series, with the days it does not cover filled from the
+    /// merged daily column (strap-only users). Shared with Glance's Charge card.
+    static func outcomeDays(key: String, series: [(day: String, value: Double)],
+                            days: [DailyMetric]) -> [String: Double] {
+        var dict: [String: Double] = [:]
+        for row in series { dict[row.day] = row.value }
+        for d in days where dict[d.day] == nil {
+            if let v = dailyOutcome(key: key, day: d) { dict[d.day] = v }
+        }
+        return dict
     }
 
     /// The merged DailyMetric column backing an outcome key, for days the imported metricSeries

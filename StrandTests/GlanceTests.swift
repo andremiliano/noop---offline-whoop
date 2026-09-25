@@ -288,3 +288,41 @@ extension GlanceTests {
         XCTAssertNil(m[1])
     }
 }
+
+// MARK: - TonightPlan
+
+extension GlanceTests {
+    private func ledger(balance: Double, need: Double) -> SleepDebtLedger {
+        SleepDebtLedger(balanceMin: balance, nights: [], needMin: need)
+    }
+
+    /// Debt adds to tonight's need; a balance inside the on-target band adds nothing.
+    func testTonightNeedAddsDebtOutsideTheDeadband() throws {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let owed = try XCTUnwrap(TonightPlan.plan(ledger: ledger(balance: -45, need: 480), wakeMinutes: nil, now: now))
+        XCTAssertEqual(owed.needMin, 525)
+        XCTAssertEqual(owed.makeUpMin, 45)
+        XCTAssertNil(owed.asleepBy)
+        let even = try XCTUnwrap(TonightPlan.plan(ledger: ledger(balance: -(SleepDebt.onTargetBandMin - 1), need: 480),
+                                                  wakeMinutes: nil, now: now))
+        XCTAssertEqual(even.needMin, 480)
+        XCTAssertNil(TonightPlan.plan(ledger: nil, wakeMinutes: { _ in 420 }, now: now))
+    }
+
+    /// The next wake is today's while it is still ahead, else tomorrow's, per weekday; asleep-by is that
+    /// wake minus the need.
+    func testAsleepByCountsBackFromTheNextWake() throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        // Friday 25 September 2026, 17:00 UTC. Saturday (weekday 7) wakes at 09:00, other days 07:00.
+        let now = cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 17))!
+        let plan = try XCTUnwrap(TonightPlan.plan(ledger: ledger(balance: 0, need: 480),
+                                                  wakeMinutes: { $0 == 7 ? 540 : 420 }, now: now, calendar: cal))
+        XCTAssertEqual(plan.wake, cal.date(from: DateComponents(year: 2026, month: 9, day: 26, hour: 9)))
+        XCTAssertEqual(plan.asleepBy, cal.date(from: DateComponents(year: 2026, month: 9, day: 26, hour: 1)))
+        // Before today's 07:00 wake, today's wake is next.
+        let early = cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 5))!
+        XCTAssertEqual(TonightPlan.nextWake(after: early, wakeMinutes: { _ in 420 }, calendar: cal),
+                       cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 7)))
+    }
+}

@@ -14,6 +14,8 @@ struct GlanceScoreCard<Rings: View>: View {
     let synthesis: String
     /// A second line under the synthesis — the calibration reason or the calm-day Effort note — or nil.
     let note: String?
+    /// The day's plan in one line (Effort to aim for, tonight's sleep), or nil.
+    let plan: String?
     let effort: Double?
     let band: ClosedRange<Double>?
     let scale: EffortScale
@@ -23,11 +25,6 @@ struct GlanceScoreCard<Rings: View>: View {
     @ViewBuilder let rings: () -> Rings
 
     private var decimals: Int { scale == .whoop ? 1 : 0 }
-
-    private func rangeText(_ b: ClosedRange<Double>) -> String {
-        let f = "%.\(decimals)f"
-        return String(format: "\(f)–\(f)", locale: AppLanguage.activeLocale, b.lowerBound, b.upperBound)
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,18 +44,19 @@ struct GlanceScoreCard<Rings: View>: View {
                         .foregroundStyle(StrandPalette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if let plan {
+                    Text(verbatim: plan)
+                        .font(StrandFont.body.weight(.semibold))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, NoopMetrics.space1)
+                }
                 if showsTarget {
                     NavigationLink(value: GlanceScoreRoute.effort) {
                         VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text("Today's Effort target").strandOverline()
-                                Spacer()
-                                if let band {
-                                    Text(verbatim: rangeText(band))
-                                        .font(StrandFont.number(15))
-                                        .foregroundStyle(StrandPalette.textPrimary)
-                                }
-                            }
+                            // The range itself is in the plan line above; stating it here too would be
+                            // the same fact twice.
+                            Text("Today's Effort target").strandOverline()
                             EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort)
                             EffortTargetStatusText(standing: EffortTarget.standing(effort: effort, band: band),
                                                    hasBand: band != nil, decimals: decimals)
@@ -268,14 +266,7 @@ struct GlanceTimeline: View {
     var body: some View {
         VStack(spacing: NoopMetrics.gap) {
             ForEach(workouts, id: \.startTs) { w in
-                NavigationLink(value: TabRoute.workouts) {
-                    GlanceTimelineRow(glyph: .workout(w.sport),
-                                      badge: w.strain.map { UnitFormatter.effortDisplay($0, scale: scale) },
-                                      tint: StrandPalette.effortColor,
-                                      title: WorkoutSource.displaySport(w.sport),
-                                      subtitle: GlanceFormat.time(w.startTs))
-                }
-                .buttonStyle(LiquidPressStyle())
+                GlanceWorkoutTimelineRow(workout: w, scale: scale)
             }
             if let night {
                 NavigationLink(value: GlanceScoreRoute.rest) {
