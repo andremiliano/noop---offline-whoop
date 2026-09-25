@@ -1847,6 +1847,7 @@ struct SettingsView: View {
     @AppStorage("noop.liquidTodayEnabled") private var liquidTodayEnabled = true
     /// #2463: the opt-in Glance layout (`GlanceLayoutPrefs`).
     @AppStorage(GlanceLayoutPrefs.enabledKey) private var glanceLayoutEnabled = false
+    @AppStorage(GlanceLayoutPrefs.experimentalKey) private var glanceExperimentalEnabled = false
     private var liquidTodayCard: some View {
         SettingsSection(
             icon: "drop.fill",
@@ -1889,6 +1890,19 @@ struct SettingsView: View {
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
+                if glanceLayoutEnabled {
+                    Toggle(isOn: $glanceExperimentalEnabled) {
+                        Text("Experimental: Energy and Body Age")
+                            .font(StrandFont.subhead)
+                            .foregroundStyle(StrandPalette.textPrimary)
+                    }
+                    .toggleStyle(.switch)
+                    .tint(StrandPalette.accent)
+                    Text("Adds an Energy estimate and your Body Age to Today. Energy is a rough rule of thumb from your Charge, time awake, stress and Effort, and is not validated. Body Age is the Health tab's wellness estimate, not a clinical age.")
+                        .font(StrandFont.caption)
+                        .foregroundStyle(StrandPalette.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 NavigationLink {
                     StrapSetupGuideView()
                 } label: {

@@ -8,6 +8,19 @@ import WhoopStore
 // the resolvers the rest of the app already uses (`ChargeBreakdownWiring`, `BodyVitalSigns`,
 // `Repository.workoutZoneMinutes`, the day rows). Trend rows compare a value with the wearer's own recent
 // days (`UsualRange`), or, for a vital, with the baseline the Health tab bands it against.
+//
+// A page is the first hop from Today, so it is pushed as a value (`GlanceScoreRoute`) and rides the tab's
+// `NavigationPath`; its own links are deeper hops and push closure destinations (`TabRoute.destination`),
+// the convention `TabRoute` documents.
+
+/// The score page a Glance ring, tile or timeline row opens. Registered once, by Today.
+enum GlanceScoreRoute: Hashable {
+    case charge
+    case effort
+    case rest
+    /// One vital's plain-language page, by `BodyVitalReading.key`.
+    case vital(String)
+}
 
 // MARK: - Shared scaffold
 
@@ -15,7 +28,8 @@ import WhoopStore
 struct GlanceScorePage<Content: View>: View {
     let title: String
     let tint: Color
-    let guide: ScoreSection
+    /// The scoring-guide section the ⓘ opens, or nil for a page with no guide (a vital).
+    let guide: ScoreSection?
     @ViewBuilder let content: () -> Content
 
     @State private var showGuide = false
@@ -38,9 +52,11 @@ struct GlanceScorePage<Content: View>: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { showGuide = true } label: { Image(systemName: "info.circle") }
-                    .accessibilityLabel(Text("How it is scored"))
+            if guide != nil {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showGuide = true } label: { Image(systemName: "info.circle") }
+                        .accessibilityLabel(Text("How it is scored"))
+                }
             }
         }
         .sheet(isPresented: $showGuide) {
@@ -122,6 +138,30 @@ struct GlanceVitalInputs {
         }
     }
 
+    /// Whether a reading earns a Glance tile: it has a value, and it is a calibrated measure. Raw SpO₂ is
+    /// a sensor count with no meaning to read at a glance; it stays on the Health tab.
+    static func showsOnGlance(_ r: BodyVitalReading) -> Bool {
+        r.value != nil && r.key != "spo2raw"
+    }
+
+    /// One plain sentence on what a vital is and how to read it.
+    static func explainer(_ key: String) -> String {
+        switch key {
+        case "resp":
+            return String(localized: "Breaths per minute while you sleep. It barely changes from night to night, so a clear rise is worth noticing: it can come with illness or a hard day.")
+        case "spo2":
+            return String(localized: "How much oxygen your blood carries while you sleep. Most people sit between 95% and 100%.")
+        case "rhr":
+            return String(localized: "Your heart rate at rest while you sleep. Lower than your normal usually means well recovered; a rise can follow hard training, alcohol, stress or illness.")
+        case "hrv":
+            return String(localized: "How much the time between heartbeats varies while you sleep. Higher than your normal usually means well recovered. Compare it with yourself, not with other people.")
+        case "skin":
+            return String(localized: "Your wrist temperature overnight. The number itself matters less than change from your own normal: a rise can come with illness, alcohol or a warm room.")
+        default:
+            return ""
+        }
+    }
+
     static func route(_ key: String) -> TabRoute {
         switch key {
         case "resp":    return .metric("resp_rate")
@@ -151,12 +191,102 @@ struct GlanceVitalTrendRow: View {
     let reading: BodyVitalReading
 
     var body: some View {
-        NavigationLink(value: GlanceVitalInputs.route(reading.key)) {
+        NavigationLink { GlanceVitalPage(key: reading.key) } label: {
             GlanceTrendRow(icon: GlanceVitalInputs.icon(reading.key), title: reading.label,
                            value: reading.formattedValue, status: .vital(reading),
-                           values: reading.sparkline ?? [], band: nil, tint: reading.metricColor)
+                           values: reading.sparkline ?? [], band: reading.normalRange, tint: reading.metricColor)
         }
         .buttonStyle(LiquidPressStyle())
+    }
+}
+
+/// One vital in plain words: the value and what it means, your normal range and where it came from,
+/// the recent nights against that range, and what the vital is. The full technical page is one tap on.
+struct GlanceVitalPage: View {
+    @EnvironmentObject private var repo: Repository
+    let key: String
+
+    @State private var vitals = GlanceVitalInputs()
+    private let units = GlanceUnitPrefs()
+
+    var body: some View {
+        let reading = vitals.readings(repo, temperatureUnit: units.temperatureUnit,
+                                      skinTempPreferred: units.skinTempPreferred).first { $0.key == key }
+        GlanceScorePage(title: reading?.label ?? "", tint: reading?.metricColor ?? StrandPalette.accent, guide: nil) {
+            if let reading {
+                VStack(spacing: NoopMetrics.space2) {
+                    Image(systemName: GlanceVitalInputs.icon(key))
+                        .font(.system(size: 28))
+                        .foregroundStyle(reading.metricColor)
+                    Text(verbatim: reading.formattedValue ?? String(localized: "No data"))
+                        .font(StrandFont.number(52))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .lineLimit(1).minimumScaleFactor(0.5)
+                    GlanceStatusLine(status: .vital(reading))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, NoopMetrics.space6)
+
+                if let range = reading.normalRange {
+                    VStack(alignment: .leading, spacing: NoopMetrics.space2) {
+                        Text(verbatim: reading.banding.basis == .personal
+                             ? String(localized: "Your normal range") : String(localized: "Usual adult range"))
+                            .strandOverline()
+                        Text(verbatim: rangeText(reading, range))
+                            .font(StrandFont.number(24))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Text(verbatim: basisLine(reading))
+                            .font(StrandFont.caption)
+                            .foregroundStyle(StrandPalette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let spark = reading.sparkline, spark.count >= 2 {
+                            GlanceSparkBand(values: spark, band: range, tint: reading.metricColor)
+                                .frame(height: 120)
+                                .padding(.top, NoopMetrics.space2)
+                            Text("Recent nights. The shaded band is the normal range.")
+                                .font(StrandFont.caption)
+                                .foregroundStyle(StrandPalette.textTertiary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(NoopMetrics.cardPadding)
+                    .background(NoopPanelSurface(cornerRadius: NoopMetrics.cardRadius))
+                }
+
+                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
+                    Text("What it is").strandOverline()
+                    Text(verbatim: GlanceVitalInputs.explainer(key))
+                        .font(StrandFont.body)
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(NoopMetrics.cardPadding)
+                .background(NoopPanelSurface(cornerRadius: NoopMetrics.cardRadius))
+
+                NavigationLink { GlanceVitalInputs.route(key).destination } label: {
+                    GlanceLinkRow(title: String(localized: "All details"), icon: "chart.xyaxis.line")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .task { vitals = await GlanceVitalInputs.load(repo) }
+    }
+
+    /// "32.0 – 33.1 °C", in the reading's own display format.
+    private func rangeText(_ r: BodyVitalReading, _ range: ClosedRange<Double>) -> String {
+        [r.format(range.lowerBound), "–", r.format(range.upperBound), r.unit].joined(separator: " ")
+    }
+
+    /// Where the range comes from, in one sentence.
+    private func basisLine(_ r: BodyVitalReading) -> String {
+        if r.banding.basis == .personal {
+            return String(localized: "Learned from your last \(r.banding.nights) nights. Most of your nights fall inside it.")
+        }
+        if r.key == "spo2" {
+            return String(localized: "The range most healthy adults sit in.")
+        }
+        return String(localized: "NOOP is still learning your own normal (\(r.banding.nights) of 14 nights), so this is the range most adults sit in for now. Being outside it is common and not a concern on its own.")
     }
 }
 
@@ -193,14 +323,15 @@ struct GlanceChargePage: View {
             breakdown
             GlanceSectionTitle(title: String(localized: "Trends"))
             let chargeTrend = GlanceHistory.trend(days: repo.days, through: dayKey, value: charge, \.recovery)
-            NavigationLink(value: TabRoute.metric(HeroRingMetric.charge)) {
+            NavigationLink { TabRoute.metric(HeroRingMetric.charge).destination } label: {
                 GlanceTrendRow(icon: "heart.circle.fill", title: String(localized: "Charge"),
                                value: GlanceFormat.whole(charge, unit: "%"), status: .usual(chargeTrend.result),
                                values: chargeTrend.values, band: chargeTrend.result.band, tint: StrandPalette.chargeColor)
             }
             .buttonStyle(LiquidPressStyle())
             ForEach(vitals.readings(repo, temperatureUnit: units.temperatureUnit,
-                                    skinTempPreferred: units.skinTempPreferred)) { reading in
+                                    skinTempPreferred: units.skinTempPreferred)
+                        .filter(GlanceVitalInputs.showsOnGlance)) { reading in
                 GlanceVitalTrendRow(reading: reading)
             }
         }
@@ -273,7 +404,7 @@ struct GlanceEffortPage: View {
             if !workouts.isEmpty {
                 GlanceSectionTitle(title: String(localized: "Timeline"))
                 ForEach(workouts, id: \.startTs) { w in
-                    NavigationLink(value: TabRoute.workouts) {
+                    NavigationLink { TabRoute.workouts.destination } label: {
                         GlanceTimelineRow(glyph: .workout(w.sport),
                                           badge: w.strain.map { UnitFormatter.effortDisplay($0, scale: scale) },
                                           tint: StrandPalette.effortColor,
@@ -291,7 +422,7 @@ struct GlanceEffortPage: View {
             let trend = GlanceHistory.trend(days: repo.days, through: dayKey, value: effort) {
                 $0.strain.map { UnitFormatter.effortValue($0, scale: scale) }
             }
-            NavigationLink(value: TabRoute.metric(HeroRingMetric.effort)) {
+            NavigationLink { TabRoute.metric(HeroRingMetric.effort).destination } label: {
                 GlanceTrendRow(icon: "bolt.fill", title: String(localized: "Effort"),
                                value: effort.map { String(format: "%.\(decimals)f", locale: AppLanguage.activeLocale, $0) },
                                status: .usual(trend.result), values: trend.values, band: trend.result.band,
@@ -354,7 +485,7 @@ struct GlanceRestPage: View {
                 GlanceStatTile(icon: "sun.horizon.fill", label: String(localized: "Woke up"),
                                value: night.map { GlanceFormat.time($0.endTs) })
             }
-            NavigationLink(value: TabRoute.sleep) {
+            NavigationLink { TabRoute.sleep.destination } label: {
                 GlanceLinkRow(title: String(localized: "See your sleep"), icon: "bed.double")
             }
             .buttonStyle(.plain)
@@ -385,7 +516,7 @@ struct GlanceRestPage: View {
 
     private func trendLink(_ key: String, icon: String, title: String, value: String?,
                            _ trend: (values: [Double], result: UsualRange.Result)) -> some View {
-        NavigationLink(value: TabRoute.metric(key)) {
+        NavigationLink { TabRoute.metric(key).destination } label: {
             GlanceTrendRow(icon: icon, title: title, value: value, status: .usual(trend.result),
                            values: trend.values, band: trend.result.band, tint: StrandPalette.restLine)
         }

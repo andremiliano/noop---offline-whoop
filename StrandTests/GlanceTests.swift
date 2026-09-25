@@ -1,5 +1,6 @@
 import XCTest
 import WhoopStore
+import StrandAnalytics
 @testable import Strand
 
 /// #2463 Glance and the strap setup guide. The pure parts — what the guide tells each strap to turn on,
@@ -113,19 +114,19 @@ final class GlanceTests: XCTestCase {
         XCTAssertEqual(r.status, .notEnoughHistory)
     }
 
-    /// The band is the middle half of the history: 1…9 gives 3…7.
-    func testBandIsTheInterquartileRange() throws {
-        let b = try XCTUnwrap(UsualRange.band([9, 1, 8, 2, 7, 3, 6, 4, 5]))
-        XCTAssertEqual(b.lowerBound, 3, accuracy: 1e-9)
-        XCTAssertEqual(b.upperBound, 7, accuracy: 1e-9)
+    /// The band is the middle 80% of the history: 1…11 gives 2…10.
+    func testBandIsTheMiddleEightyPercent() throws {
+        let b = try XCTUnwrap(UsualRange.band([9, 1, 8, 2, 7, 3, 6, 4, 5, 10, 11]))
+        XCTAssertEqual(b.lowerBound, 2, accuracy: 1e-9)
+        XCTAssertEqual(b.upperBound, 10, accuracy: 1e-9)
     }
 
     func testStatusAgainstTheBand() {
-        let h: [Double] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        let h: [Double] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         XCTAssertEqual(UsualRange.evaluate(value: 5, history: h).status, .usual)
-        XCTAssertEqual(UsualRange.evaluate(value: 3, history: h).status, .usual)
-        XCTAssertEqual(UsualRange.evaluate(value: 8, history: h).status, .above)
-        XCTAssertEqual(UsualRange.evaluate(value: 2, history: h).status, .below)
+        XCTAssertEqual(UsualRange.evaluate(value: 2, history: h).status, .usual)
+        XCTAssertEqual(UsualRange.evaluate(value: 10.5, history: h).status, .above)
+        XCTAssertEqual(UsualRange.evaluate(value: 1.5, history: h).status, .below)
         XCTAssertEqual(UsualRange.evaluate(value: nil, history: h).status, .noData)
     }
 
@@ -138,15 +139,36 @@ final class GlanceTests: XCTestCase {
         XCTAssertEqual(t.values.last, 5)
         XCTAssertEqual(t.values.count, 10)
         XCTAssertEqual(t.result.status, .usual)
-        XCTAssertEqual(t.result.band?.upperBound ?? 0, 7, accuracy: 1e-9)
+        XCTAssertEqual(t.result.band?.upperBound ?? 0, 8.2, accuracy: 1e-9)
     }
 }
 
 extension GlanceTests {
-    func testMonitorPositionIsTheValueBetweenTheRecentExtremes() {
-        XCTAssertEqual(GlanceMonitorTile.position(of: 60, in: [50, 70, 55]) ?? -1, 0.5, accuracy: 1e-9)
-        XCTAssertNil(GlanceMonitorTile.position(of: 60, in: [60, 60]))
-        XCTAssertNil(GlanceMonitorTile.position(of: nil, in: [50, 70]))
+    /// The marker sits inside the shaded band exactly when the value is inside the range.
+    func testMonitorGaugePlacesValueAndRangeOnOneAxis() throws {
+        let g = try XCTUnwrap(GlanceMonitorTile.gauge(value: 60, values: [50, 70, 55], range: 55...65))
+        XCTAssertEqual(g.marker, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(g.band?.lowerBound ?? -1, 0.25, accuracy: 1e-9)
+        XCTAssertEqual(g.band?.upperBound ?? -1, 0.75, accuracy: 1e-9)
+        let out = try XCTUnwrap(GlanceMonitorTile.gauge(value: 80, values: [50, 70], range: 55...65))
+        XCTAssertFalse(out.band!.contains(out.marker))
+        XCTAssertNil(GlanceMonitorTile.gauge(value: nil, values: [50, 70], range: nil))
+        XCTAssertNil(GlanceMonitorTile.gauge(value: 60, values: [60], range: nil))
+    }
+
+    /// The range the Glance words cite and the banding the Health tab shows come from the same inputs:
+    /// across a trusted personal baseline and a cold start, a plausible value is inside
+    /// `BodyVitalSigns.normalRange` exactly when `VitalBands.band` calls it in range.
+    func testNormalRangeAgreesWithVitalBandsEverywhere() {
+        let trusted: [Double?] = (0..<40).map { 50 + Double($0 % 5) }
+        let cold: [Double?] = [50, 52, 51]
+        for history in [trusted, cold] {
+            let range = BodyVitalSigns.normalRange(history: history, populationRange: 40...60, cfg: Baselines.restingHRCfg)
+            for v in stride(from: 30.0, through: 80.0, by: 0.25) {
+                let band = VitalBands.band(value: v, history: history, populationRange: 40...60, cfg: Baselines.restingHRCfg)
+                XCTAssertEqual(band.band == .inRange, range.contains(v), "value \(v)")
+            }
+        }
     }
 }
 
@@ -202,5 +224,29 @@ extension GlanceTests {
         let t = ActivityConsistency.targetDays(days, before: "2026-09-25")
         XCTAssertEqual(t, ActivityConsistency.TargetDays(below: 1, within: 2, above: 1))
         XCTAssertEqual(t.total, 4)
+    }
+}
+
+// MARK: - EnergyEstimate (experimental)
+
+extension GlanceTests {
+    /// Charge 80, 5 h awake (−10), one hour at stress 2.5 (−2), one calm hour at 0.5 (+0.5), Effort 20
+    /// (−6): 62.5.
+    func testEnergyAddsUpItsStatedTerms() throws {
+        let now = Date(timeIntervalSince1970: 1_000_000 + 5 * 3600)
+        let r = try XCTUnwrap(EnergyEstimate.estimate(charge: 80, wakeTs: 1_000_000,
+                                                      stressLevels: [2.5, 0.5, nil, 1.2], effort: 20, now: now))
+        XCTAssertEqual(r.awake, 10, accuracy: 1e-9)
+        XCTAssertEqual(r.stress, 1.5, accuracy: 1e-9)
+        XCTAssertEqual(r.effort, 6, accuracy: 1e-9)
+        XCTAssertEqual(r.energy, 62.5, accuracy: 1e-9)
+    }
+
+    func testEnergyNeedsAChargeAndAWakeTimeAndStaysInBounds() {
+        let now = Date(timeIntervalSince1970: 1_000_000 + 30 * 3600)
+        XCTAssertNil(EnergyEstimate.estimate(charge: nil, wakeTs: 1_000_000, stressLevels: [], effort: nil, now: now))
+        XCTAssertNil(EnergyEstimate.estimate(charge: 80, wakeTs: nil, stressLevels: [], effort: nil, now: now))
+        XCTAssertEqual(EnergyEstimate.estimate(charge: 20, wakeTs: 1_000_000, stressLevels: [3, 3],
+                                               effort: 100, now: now)?.energy, 0)
     }
 }

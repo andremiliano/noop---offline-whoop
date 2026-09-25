@@ -1305,9 +1305,23 @@ private struct VitalitySection: View {
         .clipShape(RoundedRectangle(cornerRadius: NoopMetrics.cardRadius, style: .continuous))
     }
 
+    private func bodyAgeDeltaLine(yrs: Int, younger: Bool) -> String {
+        BodyAgeText.delta(yrs: yrs, younger: younger)
+    }
+
+    private func load() async {
+        vitality = (await repo.exploreSeries(key: "vitality", source: "my-whoop")).last?.value
+        bodyAge = (await repo.exploreSeries(key: "body_age", source: "my-whoop")).last?.value
+        loaded = true
+    }
+}
+
+/// Body Age's distance from the wearer's own age, shared by the Health tab and Glance so the two say it
+/// in the same words.
+enum BodyAgeText {
     /// The Body Age delta as whole-phrase variants per count and direction, so translators see
     /// complete phrases (never a stitched plural or direction fragment).
-    private func bodyAgeDeltaLine(yrs: Int, younger: Bool) -> String {
+    static func delta(yrs: Int, younger: Bool) -> String {
         if yrs == 0 { return String(localized: "about your age") }
         switch (younger, yrs == 1) {
         case (true, true):   return String(localized: "1 yr younger")
@@ -1315,12 +1329,6 @@ private struct VitalitySection: View {
         case (false, true):  return String(localized: "1 yr older")
         case (false, false): return String(localized: "\(yrs) yrs older")
         }
-    }
-
-    private func load() async {
-        vitality = (await repo.exploreSeries(key: "vitality", source: "my-whoop")).last?.value
-        bodyAge = (await repo.exploreSeries(key: "body_age", source: "my-whoop")).last?.value
-        loaded = true
     }
 }
 

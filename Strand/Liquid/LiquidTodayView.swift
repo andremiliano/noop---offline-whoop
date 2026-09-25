@@ -90,10 +90,6 @@ struct LiquidTodayView: View {
 
     // sheets / expanders
     @State private var guideSection: ScoreSection?
-    /// #2463 Glance: each ring pushes its score page.
-    @State private var showChargeWhy = false
-    @State private var showEffortWhy = false
-    @State private var showRestWhy = false
     /// The window the hero's Effort covers, resolved in load(), so the Effort page's zone time
     /// describes the same stretch as the score.
     @State private var cachedEffortWindow: (from: Int, to: Int)?
@@ -117,6 +113,7 @@ struct LiquidTodayView: View {
     @AppStorage(TodayLayoutPrefs.hiddenKey) private var hiddenSectionsRaw = ""
     /// #2463: the opt-in Glance layout. Presentation only — see `GlanceLayoutPrefs`.
     @AppStorage(GlanceLayoutPrefs.enabledKey) private var glance = false
+    @AppStorage(GlanceLayoutPrefs.experimentalKey) private var glanceExperimental = false
     private var sectionOrder: [TodaySection] {
         TodayLayoutPrefs.visibleOrder(orderRaw: sectionOrderRaw, hiddenRaw: hiddenSectionsRaw)
     }
@@ -469,25 +466,9 @@ struct LiquidTodayView: View {
             DashboardCardPrefs.migrateLegacyStepsAverage()
             await load()
         }
-        // #2463 Glance: a ring opens its score page, pushed onto Today's stack. Every figure a page
-        // shows for the day is handed over from the state the ring itself reads.
-        .navigationDestination(isPresented: $showChargeWhy) {
-            GlanceChargePage(charge: chargeDisplay.pct, stateLabel: chargeDisplay.stateLabel,
-                             synthesis: chargeDisplay.calibrationDetail ?? synthLine,
-                             breakdownRow: cachedChargeBreakdownRow, restScore: restScore,
-                             date: selectedLogicalDay, dayKey: selectedDayKey)
-        }
-        .navigationDestination(isPresented: $showEffortWhy) {
-            GlanceEffortPage(effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
-                             from: cachedEffortWindow?.from ?? 0, to: cachedEffortWindow?.to ?? 0,
-                             workouts: workouts,
-                             caloriesText: caloriesCount.map { "\(Int($0.rounded())) kcal" },
-                             stepsText: stepCount == nil ? nil : stepsText,
-                             date: selectedLogicalDay, dayKey: selectedDayKey)
-        }
-        .navigationDestination(isPresented: $showRestWhy) {
-            GlanceRestPage(restScore: restScore, day: displayDay, date: selectedLogicalDay, dayKey: selectedDayKey)
-        }
+        // #2463 Glance: a ring, Health Monitor tile or timeline row opens its score page as a value on
+        // Today's own path, so the page and anything it opens pop in order.
+        .navigationDestination(for: GlanceScoreRoute.self) { glancePage($0) }
         .sheet(item: $guideSection) { section in
             NavigationStack { ScoringGuideView(initialSection: section, onClose: { guideSection = nil }) }
         }
@@ -732,7 +713,7 @@ struct LiquidTodayView: View {
                           animated: dataLoaded, onGuide: { guideSection = .charge },
                           detailRoute: .metric(HeroRingMetric.charge),
                           simple: glance,
-                          onOpen: glance ? { showChargeWhy = true } : nil)
+                          scoreRoute: glance ? .charge : nil)
             // #45: the hero Effort must honour the user's Effort scale like every other Effort read-out.
             // Show the value on the chosen scale (0–100 or WHOOP 0–21) with the matching vessel max, and
             // one decimal on the compressed 0–21 axis to match the app-wide `effortDisplay` convention
@@ -745,12 +726,12 @@ struct LiquidTodayView: View {
                           decimals: effortScale == .whoop ? 1 : 0,
                           detailRoute: .metric(HeroRingMetric.effort),
                           simple: glance,
-                          onOpen: glance ? { showEffortWhy = true } : nil)
+                          scoreRoute: glance ? .effort : nil)
             HeroScoreCell(label: String(localized: "Rest"), score: restScore, tint: StrandPalette.restColor,
                           animated: dataLoaded, onGuide: { guideSection = .rest },
                           detailRoute: .metric(HeroRingMetric.rest),
                           simple: glance,
-                          onOpen: glance ? { showRestWhy = true } : nil)
+                          scoreRoute: glance ? .rest : nil)
                 .overlay(alignment: .top) {
                     if let sourceLabel = heroSourceLabel {
                         SourceBadge("\(sourceLabel)", tint: StrandPalette.textSecondary)
@@ -773,24 +754,38 @@ struct LiquidTodayView: View {
     @ViewBuilder private var glanceSections: some View {
         GlanceScoreCard(synthesis: chargeDisplay.calibrationDetail ?? synthLine, note: glanceNote,
                         effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
-                        showsTarget: selectedDayOffset == 0, cardOpacity: cardOpacity,
-                        onOpenEffort: { showEffortWhy = true }) { heroRings }
+                        showsTarget: selectedDayOffset == 0, cardOpacity: cardOpacity) { heroRings }
         if selectedDayOffset == 0 {
             GlanceSectionTitle(title: String(localized: "Stress"))
             GlanceStressCard(hours: hostedStressHours)
+            if glanceExperimental {
+                GlanceEnergyCard(result: glanceEnergy)
+            }
             GlanceSectionTitle(title: String(localized: "Health Monitor"))
-            GlanceHealthMonitor(sleepMinutes: displayDay?.totalSleepMin, dayKey: selectedDayKey,
-                                onOpenSleep: { showRestWhy = true })
+            GlanceHealthMonitor(sleepMinutes: displayDay?.totalSleepMin, dayKey: selectedDayKey)
         } else {
             recoveryVitalsSection
         }
         GlanceSectionTitle(title: String(localized: "Training Load"))
         TrainingLoadCard(days: repo.days)
+        if glanceExperimental && selectedDayOffset == 0 {
+            GlanceBodyAgeCard()
+        }
         GlanceSectionTitle(title: String(localized: "Timeline"))
         GlanceTimeline(workouts: workouts, scale: effortScale,
                        night: GlanceHistory.night(repo.sleeps, dayKey: selectedDayKey),
-                       restScore: restScore, onOpenNight: { showRestWhy = true })
+                       restScore: restScore)
         if selectedDayOffset == 0 { JournalReminderCard() }
+    }
+
+    /// Glance's experimental Energy estimate for now. It starts only from a Charge today scored itself: a
+    /// carried Charge is a previous night's, not this morning's.
+    private var glanceEnergy: EnergyEstimate.Result? {
+        guard case .scored(let pct) = chargeDisplay else { return nil }
+        return EnergyEstimate.estimate(charge: pct,
+                                       wakeTs: GlanceHistory.night(repo.sleeps, dayKey: selectedDayKey)?.endTs,
+                                       stressLevels: hostedStressHours.map(\.level),
+                                       effort: effortStrain(displayDay), now: Date())
     }
 
     /// The line under Glance's synthesis: why calibration is not moving, else the calm-day Effort note —
@@ -798,6 +793,28 @@ struct LiquidTodayView: View {
     private var glanceNote: String? {
         chargeDisplay.calibrationReason(dayKeys: repo.days.map(\.day), nightlyHrv: repo.days.map(\.avgHrv),
                                         today: Repository.logicalDayKey(Date())) ?? effortZeroNote
+    }
+
+    /// The score page for `route`, built from the state the rings read so a page and its ring agree.
+    @ViewBuilder private func glancePage(_ route: GlanceScoreRoute) -> some View {
+        switch route {
+        case .charge:
+            GlanceChargePage(charge: chargeDisplay.pct, stateLabel: chargeDisplay.stateLabel,
+                             synthesis: chargeDisplay.calibrationDetail ?? synthLine,
+                             breakdownRow: cachedChargeBreakdownRow, restScore: restScore,
+                             date: selectedLogicalDay, dayKey: selectedDayKey)
+        case .effort:
+            GlanceEffortPage(effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
+                             from: cachedEffortWindow?.from ?? 0, to: cachedEffortWindow?.to ?? 0,
+                             workouts: workouts,
+                             caloriesText: caloriesCount.map { "\(Int($0.rounded())) kcal" },
+                             stepsText: stepCount == nil ? nil : stepsText,
+                             date: selectedLogicalDay, dayKey: selectedDayKey)
+        case .rest:
+            GlanceRestPage(restScore: restScore, day: displayDay, date: selectedLogicalDay, dayKey: selectedDayKey)
+        case .vital(let key):
+            GlanceVitalPage(key: key)
+        }
     }
 
     /// The hero's Effort on the wearer's scale — one definition for the ring, the target card and the
@@ -2313,11 +2330,11 @@ private struct HeroScoreCell: View {
             : String(Int(score.rounded()))
     }
 
-    /// #2463 Simple view: the whole cell — ring AND label — becomes one control that opens the wearer's
-    /// data, instead of the ring opening the data while the chevroned label opens the general scoring
-    /// guide. `onOpen` (a sheet, as Charge uses) wins over `detailRoute`; with neither, the cell is inert.
+    /// #2463 Glance: the whole cell — ring AND label — becomes one control that opens the score's page,
+    /// instead of the ring opening the trend while the chevroned label opens the general scoring guide.
+    /// `scoreRoute` wins over `detailRoute`; with neither, the cell is inert.
     var simple = false
-    var onOpen: (() -> Void)? = nil
+    var scoreRoute: GlanceScoreRoute? = nil
 
     /// The label row, shared by both layouts so their typography cannot drift apart.
     private var labelRow: some View {
@@ -2341,8 +2358,8 @@ private struct HeroScoreCell: View {
             labelRow
         }
         .contentShape(Rectangle())
-        if let onOpen {
-            Button(action: onOpen) { cell }
+        if let scoreRoute {
+            NavigationLink(value: scoreRoute) { cell }
                 .buttonStyle(LiquidPressStyle())
                 .accessibilityLabel(Text("\(label), \(spokenScore)"))
                 .accessibilityHint(Text("Shows what shaped it"))

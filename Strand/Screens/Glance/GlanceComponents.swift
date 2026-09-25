@@ -31,7 +31,7 @@ struct GlanceStatus: Equatable {
     static func usual(_ result: UsualRange.Result) -> GlanceStatus {
         switch result.status {
         case .usual:
-            return GlanceStatus(text: String(localized: "Typical for you"), icon: "checkmark.circle.fill", tone: .good)
+            return GlanceStatus(text: String(localized: "Normal for you"), icon: "checkmark.circle.fill", tone: .good)
         case .above:
             return GlanceStatus(text: String(localized: "Higher than usual"), icon: "arrow.up.circle.fill", tone: .info)
         case .below:
@@ -43,14 +43,29 @@ struct GlanceStatus: Equatable {
         }
     }
 
-    /// A vital, in the words the Health tab uses for the same banding (`BodyVitalReading.stateText`).
+    /// A vital against the range its banding used, saying WHICH range and which way: the wearer's own
+    /// normal once NOOP has learned it, the usual adult range until then.
     static func vital(_ reading: BodyVitalReading) -> GlanceStatus {
-        let text = reading.stateText
-        guard reading.key != "spo2raw" else { return GlanceStatus(text: text, icon: "info.circle.fill", tone: .muted) }
+        let personal = reading.banding.basis == .personal
+        guard reading.key != "spo2raw", let v = reading.value else {
+            return GlanceStatus(text: String(localized: "No data"), icon: "xmark.circle.fill", tone: .muted)
+        }
         switch reading.banding.band {
-        case .noData:     return GlanceStatus(text: text, icon: "xmark.circle.fill", tone: .muted)
-        case .inRange:    return GlanceStatus(text: text, icon: "checkmark.circle.fill", tone: .good)
-        case .outOfRange: return GlanceStatus(text: text, icon: "exclamationmark.circle.fill", tone: .warning)
+        case .noData:
+            return GlanceStatus(text: String(localized: "No data"), icon: "xmark.circle.fill", tone: .muted)
+        case .inRange:
+            return GlanceStatus(text: personal ? String(localized: "Normal for you") : String(localized: "Usual adult range"),
+                                icon: "checkmark.circle.fill", tone: .good)
+        case .outOfRange:
+            let higher = reading.normalRange.map { v > $0.upperBound } ?? false
+            let text: String
+            switch (personal, higher) {
+            case (true, true):   text = String(localized: "Higher than your normal")
+            case (true, false):  text = String(localized: "Lower than your normal")
+            case (false, true):  text = String(localized: "Above the usual adult range")
+            case (false, false): text = String(localized: "Below the usual adult range")
+            }
+            return GlanceStatus(text: text, icon: higher ? "arrow.up.circle.fill" : "arrow.down.circle.fill", tone: .warning)
         }
     }
 }

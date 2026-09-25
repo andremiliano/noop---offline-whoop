@@ -3,8 +3,9 @@ import Foundation
 /// Where a value sits against the wearer's own recent history — the "Typical for you" / "Higher than
 /// usual" read on Glance trend rows (#2463).
 ///
-/// Descriptive only. The band is the middle half (25th–75th percentile) of the prior days, so "usual"
-/// means "like half of your recent days", not "healthy". It is used for scores and durations, which have
+/// Descriptive only. The band holds the middle 80% (10th–90th percentile) of the prior days, so "normal
+/// for you" means "like most of your recent days", not "healthy", and only a genuinely unusual day is
+/// called higher or lower. It is used for scores and durations, which have
 /// no personal baseline of their own; vitals keep `VitalBands`, the baseline the Health tab bands them
 /// against, so a vital never reads one way here and another way there.
 enum UsualRange {
@@ -19,7 +20,7 @@ enum UsualRange {
     }
 
     struct Result: Equatable {
-        /// The 25th–75th percentile band of the history, or nil without enough of it.
+        /// The 10th–90th percentile band of the history, or nil without enough of it.
         let band: ClosedRange<Double>?
         let status: Status
     }
@@ -37,11 +38,11 @@ enum UsualRange {
         return Result(band: band, status: .usual)
     }
 
-    /// The 25th–75th percentile band of `history`, or nil with fewer than `minimumHistory` values.
+    /// The 10th–90th percentile band of `history`, or nil with fewer than `minimumHistory` values.
     static func band(_ history: [Double]) -> ClosedRange<Double>? {
         let sorted = history.filter(\.isFinite).sorted()
         guard sorted.count >= minimumHistory else { return nil }
-        return percentile(sorted, 0.25)...percentile(sorted, 0.75)
+        return percentile(sorted, 0.10)...percentile(sorted, 0.90)
     }
 
     /// Linear-interpolated percentile of an ascending, non-empty array.

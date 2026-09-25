@@ -11,4 +11,8 @@ enum GlanceLayoutPrefs {
     /// `@AppStorage` key for the toggle. Default OFF: the classic Today is unchanged unless a wearer opts
     /// in.
     static let enabledKey = "today.glanceLayout"
+
+    /// `@AppStorage` key for Glance's experimental cards: the Energy estimate (`EnergyEstimate`) and Body
+    /// Age. Default OFF; each card is labelled experimental when shown.
+    static let experimentalKey = "today.glanceExperimental"
 }

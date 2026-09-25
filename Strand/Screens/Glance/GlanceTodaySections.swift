@@ -20,7 +20,6 @@ struct GlanceScoreCard<Rings: View>: View {
     /// The target applies to today only; a past day shows the synthesis alone.
     let showsTarget: Bool
     let cardOpacity: Double
-    let onOpenEffort: () -> Void
     @ViewBuilder let rings: () -> Rings
 
     private var decimals: Int { scale == .whoop ? 1 : 0 }
@@ -49,7 +48,7 @@ struct GlanceScoreCard<Rings: View>: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if showsTarget {
-                    Button(action: onOpenEffort) {
+                    NavigationLink(value: GlanceScoreRoute.effort) {
                         VStack(alignment: .leading, spacing: NoopMetrics.space2) {
                             HStack(alignment: .firstTextBaseline) {
                                 Text("Today's Effort target").strandOverline()
@@ -134,16 +133,21 @@ struct GlanceStressCard: View {
 
 // MARK: - Health Monitor
 
-/// One Health Monitor tile: the vital, its value, its in-range word, and a gauge placing today among the
-/// recent days.
+/// One Health Monitor tile: the vital, its value, what that means in plain words, and a small gauge with
+/// the normal range shaded and today marked in it.
 struct GlanceMonitorTile: View {
     let icon: String
     let label: String
     let value: String?
     let status: GlanceStatus
-    /// Today's value between the recent days' lowest (0) and highest (1), or nil without a trend.
-    let position: Double?
+    /// The gauge's marker and shaded normal range, each 0 (bottom) … 1 (top), or nil without a trend.
+    let gauge: Gauge?
     let tint: Color
+
+    struct Gauge: Equatable {
+        let marker: Double
+        let band: ClosedRange<Double>?
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: NoopMetrics.space2) {
@@ -170,14 +174,21 @@ struct GlanceMonitorTile: View {
             }
             Spacer(minLength: 0)
             GeometryReader { geo in
+                let h = geo.size.height
                 ZStack(alignment: .bottom) {
                     Capsule().fill(StrandPalette.surfaceInset)
-                    if let position {
+                    if let band = gauge?.band {
+                        Capsule()
+                            .fill(StrandPalette.statusPositive.opacity(0.35))
+                            .frame(height: max(6, CGFloat(band.upperBound - band.lowerBound) * h))
+                            .offset(y: -CGFloat(band.lowerBound) * h)
+                    }
+                    if let marker = gauge?.marker {
                         Circle()
                             .strokeBorder(tint, lineWidth: 2.5)
                             .background(Circle().fill(StrandPalette.surfaceBase))
                             .frame(width: 12, height: 12)
-                            .offset(y: -CGFloat(max(0, min(1, position))) * (geo.size.height - 12))
+                            .offset(y: -CGFloat(max(0, min(1, marker))) * (h - 12))
                     }
                 }
             }
@@ -191,21 +202,25 @@ struct GlanceMonitorTile: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// `last` between `values`' lowest and highest, or nil with fewer than two distinct values.
-    static func position(of last: Double?, in values: [Double]) -> Double? {
-        guard let last, let lo = values.min(), let hi = values.max(), hi > lo else { return nil }
-        return (last - lo) / (hi - lo)
+    /// `value` and `range` placed on one axis spanning the recent `values`, the value and the range, so
+    /// the marker sits inside the shaded band exactly when the value is inside the range.
+    static func gauge(value: Double?, values: [Double], range: ClosedRange<Double>?) -> Gauge? {
+        guard let value else { return nil }
+        var all = values + [value]
+        if let range { all += [range.lowerBound, range.upperBound] }
+        guard let lo = all.min(), let hi = all.max(), hi > lo else { return nil }
+        let f = { (x: Double) in (x - lo) / (hi - lo) }
+        return Gauge(marker: f(value), band: range.map { f($0.lowerBound)...f($0.upperBound) })
     }
 }
 
-/// The vitals grid: every vital the Health tab resolves, in its words, plus last night's sleep. Each tile
-/// opens the vital's own page; the sleep tile opens the Rest page.
+/// The vitals grid: every vital the Health tab resolves that has a value, in plain words, plus last
+/// night's sleep. Each tile opens its own plain-language page.
 struct GlanceHealthMonitor: View {
     @EnvironmentObject private var repo: Repository
     /// Last night's time asleep, from the day row the Rest ring reads.
     let sleepMinutes: Double?
     let dayKey: String
-    let onOpenSleep: () -> Void
 
     @State private var vitals = GlanceVitalInputs()
     private let units = GlanceUnitPrefs()
@@ -213,24 +228,25 @@ struct GlanceHealthMonitor: View {
     var body: some View {
         let readings = vitals.readings(repo, temperatureUnit: units.temperatureUnit,
                                        skinTempPreferred: units.skinTempPreferred)
+            .filter(GlanceVitalInputs.showsOnGlance)
         LazyVGrid(columns: [GridItem(.flexible(), spacing: NoopMetrics.gap),
                             GridItem(.flexible(), spacing: NoopMetrics.gap)],
                   spacing: NoopMetrics.gap) {
             ForEach(readings) { r in
-                NavigationLink(value: GlanceVitalInputs.route(r.key)) {
+                NavigationLink(value: GlanceScoreRoute.vital(r.key)) {
                     GlanceMonitorTile(icon: GlanceVitalInputs.icon(r.key), label: r.label, value: r.formattedValue,
                                       status: .vital(r),
-                                      position: GlanceMonitorTile.position(of: r.value, in: r.sparkline ?? []),
+                                      gauge: GlanceMonitorTile.gauge(value: r.value, values: r.sparkline ?? [], range: r.normalRange),
                                       tint: r.metricColor)
                 }
                 .buttonStyle(LiquidPressStyle())
             }
             let sleep = GlanceHistory.trend(days: repo.days, through: dayKey, value: sleepMinutes, \.totalSleepMin)
-            Button(action: onOpenSleep) {
+            NavigationLink(value: GlanceScoreRoute.rest) {
                 GlanceMonitorTile(icon: "bed.double.fill", label: String(localized: "Sleep"),
                                   value: sleepMinutes.map { GlanceDuration.text(minutes: $0) },
                                   status: .usual(sleep.result),
-                                  position: GlanceMonitorTile.position(of: sleepMinutes, in: sleep.values),
+                                  gauge: GlanceMonitorTile.gauge(value: sleepMinutes, values: sleep.values, range: sleep.result.band),
                                   tint: StrandPalette.restLine)
             }
             .buttonStyle(LiquidPressStyle())
@@ -248,7 +264,6 @@ struct GlanceTimeline: View {
     let scale: EffortScale
     let night: CachedSleepSession?
     let restScore: Double?
-    let onOpenNight: () -> Void
 
     var body: some View {
         VStack(spacing: NoopMetrics.gap) {
@@ -263,7 +278,7 @@ struct GlanceTimeline: View {
                 .buttonStyle(LiquidPressStyle())
             }
             if let night {
-                Button(action: onOpenNight) {
+                NavigationLink(value: GlanceScoreRoute.rest) {
                     GlanceTimelineRow(glyph: .sleep, badge: GlanceFormat.whole(restScore),
                                       tint: StrandPalette.restLine, title: String(localized: "Sleep"),
                                       subtitle: "\(GlanceFormat.time(night.startTs)) – \(GlanceFormat.time(night.endTs))")

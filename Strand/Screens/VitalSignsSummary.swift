@@ -35,6 +35,11 @@ struct BodyVitalReading: Identifiable {
     /// knowing it runs high for you. Pure formatted data (a number and a unit), never a sentence.
     /// Defaulted so existing call sites keep compiling unchanged.
     var secondary: String? = nil
+    /// The range `banding` judged the value against (#2463 Glance): the wearer's own normal once the
+    /// baseline is trusted, else the population range — from the same inputs, so a value inside it is
+    /// exactly a value `banding` calls in range. Nil for a reading with no clinical range (raw SpO₂).
+    /// Defaulted so existing call sites keep compiling unchanged.
+    var normalRange: ClosedRange<Double>? = nil
 
     var id: String { key }
 
@@ -264,13 +269,13 @@ enum BodyVitalSigns {
         // an absolute would be scored against a history of deviations (#1636).
         let skinSeries = skinAbsRow != nil ? skinAbsPoints : skinPoints
         let skinResult: VitalBands.Result
+        var skinRange: ClosedRange<Double>? = nil
         if let skin {
-            skinResult = VitalBands.band(
-                value: skin,
-                history: VitalBands.skinTempHistory(matching: skin, in: history(before: skinRow?.day, skinSeries)),
-                populationRange: skinIsAbsolute ? 33...36 : (-0.6)...0.6,
-                cfg: skinIsAbsolute ? Baselines.metricCfg["skin_temp"]! : VitalBands.skinTempDeviationCfg
-            )
+            let skinHistory = VitalBands.skinTempHistory(matching: skin, in: history(before: skinRow?.day, skinSeries))
+            let skinPopulation: ClosedRange<Double> = skinIsAbsolute ? 33...36 : (-0.6)...0.6
+            let skinCfg = skinIsAbsolute ? Baselines.metricCfg["skin_temp"]! : VitalBands.skinTempDeviationCfg
+            skinResult = VitalBands.band(value: skin, history: skinHistory, populationRange: skinPopulation, cfg: skinCfg)
+            skinRange = Self.normalRange(history: skinHistory, populationRange: skinPopulation, cfg: skinCfg)
         } else {
             skinResult = VitalBands.Result(band: .noData, basis: .population, nights: 0)
         }
@@ -313,7 +318,9 @@ enum BodyVitalSigns {
                 day: respRow?.day,
                 source: respRow?.source,
                 missingCaption: String(localized: "No respiratory-rate value"),
-                sparkline: trail(respPoints)
+                sparkline: trail(respPoints),
+                normalRange: Self.normalRange(history: history(before: respRow?.day, respPoints),
+                                              populationRange: 12...20, cfg: Baselines.respCfg)
             ),
             BodyVitalReading(
                 key: "spo2",
@@ -351,7 +358,8 @@ enum BodyVitalSigns {
                        : (spo2rawRow != nil
                           ? String(localized: "Raw counts only — needs an import")
                           : String(localized: "No SpO₂ import or Health value"))),
-                sparkline: spo2IsCandidate ? trail(spo2CandidatePoints) : trail(spo2Points)
+                sparkline: spo2IsCandidate ? trail(spo2CandidatePoints) : trail(spo2Points),
+                normalRange: Self.normalRange(history: [], populationRange: 95...100, cfg: nil)
             ),
             BodyVitalReading(
                 key: "spo2raw",
@@ -391,7 +399,9 @@ enum BodyVitalSigns {
                 day: rhrRow?.day,
                 source: rhrRow?.source,
                 missingCaption: String(localized: "No resting HR value"),
-                sparkline: trail(rhrPoints)
+                sparkline: trail(rhrPoints),
+                normalRange: Self.normalRange(history: history(before: rhrRow?.day, rhrPoints),
+                                              populationRange: 40...60, cfg: Baselines.restingHRCfg)
             ),
             BodyVitalReading(
                 key: "hrv",
@@ -410,7 +420,9 @@ enum BodyVitalSigns {
                 source: hrvRow?.source,
                 missingCaption: hrvMissingCaption,   // #2335
                 sparkline: trail(hrvPoints),
-                caveat: hrvCaveat   // #1118
+                caveat: hrvCaveat,   // #1118
+                normalRange: Self.normalRange(history: history(before: hrvRow?.day, hrvPoints),
+                                              populationRange: 40...120, cfg: Baselines.hrvCfg)
             ),
             BodyVitalReading(
                 key: "skin",
@@ -430,9 +442,23 @@ enum BodyVitalSigns {
                 sparkline: trail(skinSeries.filter { VitalBands.isAbsoluteSkinTemp($0.value) == skinIsAbsolute }),
                 // #1636: the deviation this absolute was derived from, shown beneath it. Only when the
                 // headline IS the absolute — on a deviation-led tile it would just repeat the value.
-                secondary: skinSecondary
+                secondary: skinSecondary,
+                normalRange: skinRange
             ),
         ]
+    }
+
+    /// The range `VitalBands.band` judges against for the same inputs: the trusted personal baseline
+    /// ± `VitalBands.sigmaK` spreads, held inside the physiological bounds, else the population range.
+    /// A plausible value is inside this range exactly when `band` calls it in range.
+    static func normalRange(history: [Double?], populationRange: ClosedRange<Double>,
+                            cfg: MetricCfg?) -> ClosedRange<Double> {
+        guard let cfg else { return populationRange }
+        let state = Baselines.foldHistory(history, cfg: cfg)
+        guard state.trusted else { return populationRange }
+        let half = VitalBands.sigmaK * Baselines.sigma(state)
+        let lo = max(cfg.minVal, state.baseline - half), hi = min(cfg.maxVal, state.baseline + half)
+        return lo <= hi ? lo...hi : populationRange
     }
 
     /// The newest day any resolved reading was sourced from — drives the section's "Latest" trailing label.
