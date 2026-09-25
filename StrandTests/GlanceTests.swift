@@ -250,3 +250,41 @@ extension GlanceTests {
                                                effort: 100, now: now)?.energy, 0)
     }
 }
+
+// MARK: - TrendAnalysis
+
+extension GlanceTests {
+    private func days(_ values: [Double], endingOn last: Int = 30) -> [(day: String, value: Double)] {
+        values.enumerated().map { (String(format: "2026-09-%02d", last - values.count + 1 + $0.offset), $0.element) }
+    }
+
+    /// Last 3 days average 10, the 3 before average 4: +6. A 30-day period with no earlier days is nil.
+    func testChangeIsRecentAverageMinusThePriorStretch() {
+        let pts = days([4, 4, 4, 10, 10, 10])
+        let c = TrendAnalysis.changes(pts, periods: [3, 30])
+        XCTAssertEqual(c[0].delta ?? 0, 6, accuracy: 1e-9)
+        XCTAssertNil(c[1].delta)
+    }
+
+    /// Calendar days, not points: a missing day shortens a stretch rather than borrowing an older one.
+    func testChangeCountsCalendarDaysAcrossGaps() {
+        let pts: [(day: String, value: Double)] = [("2026-09-24", 1), ("2026-09-27", 5), ("2026-09-30", 9)]
+        let c = TrendAnalysis.changes(pts, periods: [3])
+        // Last 3 days (28–30) = 9; the 3 before (25–27) = 5.
+        XCTAssertEqual(c[0].delta ?? 0, 4, accuracy: 1e-9)
+    }
+
+    func testWindowKeepsTheLastCalendarDays() {
+        let pts = days([1, 2, 3, 4, 5])
+        XCTAssertEqual(TrendAnalysis.window(pts, days: 2).map(\.value), [4, 5])
+    }
+
+    /// 2026-09-21 is a Monday; with a Monday-first week it lands in slot 0, Sunday the 27th in slot 6.
+    func testWeekdayMeansFollowTheFirstWeekday() {
+        let pts: [(day: String, value: Double)] = [("2026-09-21", 2), ("2026-09-28", 4), ("2026-09-27", 7)]
+        let m = TrendAnalysis.weekdayMeans(pts, firstWeekday: 2)
+        XCTAssertEqual(m[0], 3)
+        XCTAssertEqual(m[6], 7)
+        XCTAssertNil(m[1])
+    }
+}

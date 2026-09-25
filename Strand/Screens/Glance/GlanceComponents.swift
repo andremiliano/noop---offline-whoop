@@ -334,28 +334,31 @@ struct GlanceSectionTitle: View {
 
 // MARK: - Score hero
 
-/// The top of a score page: the day's sky tinted by the score's colour, the score's name and date, and
-/// the ring.
+/// The top of a score page: the date and the ring, with the day's target arc around it when there is
+/// one. The score's name is the page's title, so it is not repeated here.
 struct GlanceScoreHero: View {
-    let title: String
     let subtitle: String
     let score: Double?
     let tint: Color
     var maxValue: Double = 100
     var decimals: Int = 0
     var caption: String? = nil
+    /// A target band on the ring's axis, drawn as an arc around it.
+    var target: ClosedRange<Double>? = nil
 
     var body: some View {
         VStack(spacing: NoopMetrics.space2) {
-            Text(verbatim: title)
-                .font(StrandFont.title1)
-                .foregroundStyle(StrandPalette.textPrimary)
             Text(verbatim: subtitle)
                 .font(StrandFont.subhead)
                 .foregroundStyle(StrandPalette.textSecondary)
             LiquidScoreGauge(score: score, tint: tint, diameter: 176, animated: true,
                              maxValue: maxValue, decimals: decimals, tapPassesThrough: true)
-                .padding(.vertical, NoopMetrics.space4)
+                .overlay {
+                    if let target {
+                        GlanceTargetArc(band: target, maxValue: maxValue, lineWidth: 7).padding(-14)
+                    }
+                }
+                .padding(.vertical, NoopMetrics.space5)
             if let caption {
                 Text(verbatim: caption)
                     .font(StrandFont.subhead)
@@ -406,31 +409,40 @@ enum GlanceFormat {
         return unit.isEmpty ? n : "\(n) \(unit)"
     }
 
+    /// Formatters are costly to build and these run in row bodies, so each is built once and only its
+    /// locale refreshed, since the app's language can change while running.
+    private static let dayFormatter = DateFormatter()
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        f.dateStyle = .none
+        return f
+    }()
+
     /// "Today, 25 September" / "Wednesday, 24 September", in the app's language.
     static func dayTitle(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = AppLanguage.activeLocale
-        f.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
-        let text = f.string(from: date)
-        return Calendar.current.isDateInToday(date) ? String(localized: "Today, \(DateFormatter.localizedDayMonth(date))") : text
+        if Calendar.current.isDateInToday(date) {
+            return String(localized: "Today, \(DateFormatter.localizedDayMonth(date))")
+        }
+        dayFormatter.locale = AppLanguage.activeLocale
+        dayFormatter.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
+        return dayFormatter.string(from: date)
     }
 
     /// A local clock time, "23:14".
     static func time(_ ts: Int) -> String {
-        let f = DateFormatter()
-        f.locale = AppLanguage.activeLocale
-        f.timeStyle = .short
-        f.dateStyle = .none
-        return f.string(from: Date(timeIntervalSince1970: TimeInterval(ts)))
+        timeFormatter.locale = AppLanguage.activeLocale
+        return timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(ts)))
     }
 }
 
 extension DateFormatter {
+    private static let dayMonth = DateFormatter()
+
     /// "25 September", in the app's language.
     static func localizedDayMonth(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = AppLanguage.activeLocale
-        f.setLocalizedDateFormatFromTemplate("dMMMM")
-        return f.string(from: date)
+        dayMonth.locale = AppLanguage.activeLocale
+        dayMonth.setLocalizedDateFormatFromTemplate("dMMMM")
+        return dayMonth.string(from: date)
     }
 }

@@ -59,7 +59,8 @@ struct GlanceScoreCard<Rings: View>: View {
                                         .foregroundStyle(StrandPalette.textPrimary)
                                 }
                             }
-                            EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort)
+                            EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort,
+                                            decimals: decimals)
                             EffortTargetStatusText(standing: EffortTarget.standing(effort: effort, band: band),
                                                    hasBand: band != nil, decimals: decimals)
                         }
@@ -222,13 +223,11 @@ struct GlanceHealthMonitor: View {
     let sleepMinutes: Double?
     let dayKey: String
 
-    @State private var vitals = GlanceVitalInputs()
+    @State private var allReadings: [BodyVitalReading] = []
     private let units = GlanceUnitPrefs()
 
     var body: some View {
-        let readings = vitals.readings(repo, temperatureUnit: units.temperatureUnit,
-                                       skinTempPreferred: units.skinTempPreferred)
-            .filter(GlanceVitalInputs.showsOnGlance)
+        let readings = allReadings.filter(GlanceVitalInputs.showsOnGlance)
         LazyVGrid(columns: [GridItem(.flexible(), spacing: NoopMetrics.gap),
                             GridItem(.flexible(), spacing: NoopMetrics.gap)],
                   spacing: NoopMetrics.gap) {
@@ -251,7 +250,9 @@ struct GlanceHealthMonitor: View {
             }
             .buttonStyle(LiquidPressStyle())
         }
-        .task { vitals = await GlanceVitalInputs.load(repo) }
+        .task(id: GlanceVitalInputs.reloadKey(repo, units: units)) {
+            allReadings = await GlanceVitalInputs.loadReadings(repo, units: units)
+        }
     }
 }
 

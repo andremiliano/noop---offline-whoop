@@ -8,36 +8,78 @@ import WhoopStore
 // Every figure arrives already resolved by the caller from the same state the hero reads; nothing is
 // computed afresh, so these pieces and the rest of Today cannot disagree.
 
-/// A horizontal Effort axis with today's target band shaded and today's Effort marked.
+/// A horizontal Effort axis with today's target band shaded, today's Effort filled in, and the band's
+/// edges numbered under the track so the target reads as figures, not only as a shape.
 struct EffortTargetBar: View {
     let axisMax: Double
     let band: ClosedRange<Double>?
     let effort: Double?
+    /// Decimal places for the edge numbers: 1 on the 0–21 scale, 0 on 0–100.
+    var decimals: Int = 0
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(StrandPalette.surfaceInset)
-                if let band {
-                    Capsule()
-                        .fill(StrandPalette.effortColor.opacity(0.35))
-                        .frame(width: max(0, x(band.upperBound, geo.size.width) - x(band.lowerBound, geo.size.width)))
-                        .offset(x: x(band.lowerBound, geo.size.width))
-                }
-                if let effort {
-                    Capsule()
-                        .fill(StrandPalette.effortColor)
-                        .frame(width: x(effort, geo.size.width))
+        VStack(spacing: 4) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(StrandPalette.surfaceInset)
+                    if let band {
+                        Capsule()
+                            .fill(StrandPalette.effortColor.opacity(0.35))
+                            .frame(width: max(0, x(band.upperBound, geo.size.width) - x(band.lowerBound, geo.size.width)))
+                            .offset(x: x(band.lowerBound, geo.size.width))
+                    }
+                    if let effort {
+                        Capsule()
+                            .fill(StrandPalette.effortColor)
+                            .frame(width: x(effort, geo.size.width))
+                    }
                 }
             }
+            .frame(height: 10)
+            if let band {
+                GeometryReader { geo in
+                    ZStack(alignment: .topLeading) {
+                        edge(band.lowerBound, geo.size.width)
+                        edge(band.upperBound, geo.size.width)
+                    }
+                }
+                .frame(height: 16)
+            }
         }
-        .frame(height: 10)
         .accessibilityHidden(true)
+    }
+
+    /// A band edge's number, centred under its point on the track and kept inside the card.
+    private func edge(_ v: Double, _ width: CGFloat) -> some View {
+        let f = "%.\(decimals)f"
+        return Text(verbatim: String(format: f, locale: AppLanguage.activeLocale, v))
+            .font(StrandFont.captionNumber)
+            .foregroundStyle(StrandPalette.textSecondary)
+            .fixedSize()
+            .position(x: min(max(x(v, width), 12), width - 12), y: 8)
     }
 
     /// `v` on the axis, as a horizontal position within `width`, clamped to the track.
     private func x(_ v: Double, _ width: CGFloat) -> CGFloat {
         CGFloat(max(0, min(v, axisMax)) / axisMax) * width
+    }
+}
+
+/// The target band drawn as an arc just outside a score ring, on the ring's own 0…`maxValue` axis, so a
+/// ring shows where today's Effort should land.
+struct GlanceTargetArc: View {
+    let band: ClosedRange<Double>
+    let maxValue: Double
+    var lineWidth: CGFloat = 5
+
+    var body: some View {
+        let lo = max(0, min(1, band.lowerBound / maxValue)), hi = max(0, min(1, band.upperBound / maxValue))
+        Circle()
+            .trim(from: lo, to: max(lo, hi))
+            .stroke(StrandPalette.effortBright.opacity(0.85),
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, dash: [lineWidth * 0.2, lineWidth * 1.4]))
+            .rotationEffect(.degrees(-90))
+            .accessibilityHidden(true)
     }
 }
 

@@ -726,7 +726,8 @@ struct LiquidTodayView: View {
                           decimals: effortScale == .whoop ? 1 : 0,
                           detailRoute: .metric(HeroRingMetric.effort),
                           simple: glance,
-                          scoreRoute: glance ? .effort : nil)
+                          scoreRoute: glance ? .effort : nil,
+                          targetBand: glance && selectedDayOffset == 0 ? effortTargetBand : nil)
             HeroScoreCell(label: String(localized: "Rest"), score: restScore, tint: StrandPalette.restColor,
                           animated: dataLoaded, onGuide: { guideSection = .rest },
                           detailRoute: .metric(HeroRingMetric.rest),
@@ -2335,6 +2336,8 @@ private struct HeroScoreCell: View {
     /// `scoreRoute` wins over `detailRoute`; with neither, the cell is inert.
     var simple = false
     var scoreRoute: GlanceScoreRoute? = nil
+    /// Glance: today's target band on the ring's axis, drawn as an arc around it (Effort only).
+    var targetBand: ClosedRange<Double>? = nil
 
     /// The label row, shared by both layouts so their typography cannot drift apart.
     private var labelRow: some View {
@@ -2355,6 +2358,11 @@ private struct HeroScoreCell: View {
         let cell = VStack(spacing: 7) {
             LiquidScoreGauge(score: score, tint: tint, diameter: Self.vesselDiameter, animated: animated,
                              maxValue: maxValue, decimals: decimals, tapPassesThrough: true)
+                .overlay {
+                    if let targetBand {
+                        GlanceTargetArc(band: targetBand, maxValue: maxValue, lineWidth: 4).padding(-7)
+                    }
+                }
             labelRow
         }
         .contentShape(Rectangle())

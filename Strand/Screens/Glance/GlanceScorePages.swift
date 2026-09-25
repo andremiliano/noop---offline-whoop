@@ -82,6 +82,12 @@ enum GlanceHistory {
         return (Array(values.suffix(windowDays)), UsualRange.evaluate(value: value, history: Array(prior)))
     }
 
+    /// One column of the day rows up to and including `dayKey`, oldest first — a trend page's series.
+    static func points(days: [DailyMetric], through dayKey: String,
+                       _ column: (DailyMetric) -> Double?) -> [(day: String, value: Double)] {
+        days.compactMap { d in d.day <= dayKey ? column(d).map { (d.day, $0) } : nil }.sorted { $0.day < $1.day }
+    }
+
     /// `trend` over one column of the day rows.
     static func trend(days: [DailyMetric], through dayKey: String, value: Double?,
                       _ column: (DailyMetric) -> Double?) -> (values: [Double], result: UsualRange.Result) {
@@ -115,6 +121,20 @@ struct GlanceVitalInputs {
             out.spo2CandidateByDay = Dictionary(pts.map { ($0.day, $0.value) }, uniquingKeysWith: { a, _ in a })
         }
         return out
+    }
+
+    /// Load the per-night maps and resolve the readings once, for a view to keep in `@State` rather than
+    /// re-resolving on every render.
+    @MainActor
+    static func loadReadings(_ repo: Repository, units: GlanceUnitPrefs) async -> [BodyVitalReading] {
+        await load(repo).readings(repo, temperatureUnit: units.temperatureUnit,
+                                  skinTempPreferred: units.skinTempPreferred)
+    }
+
+    /// Refreshes when the data or a unit preference changes.
+    @MainActor
+    static func reloadKey(_ repo: Repository, units: GlanceUnitPrefs) -> String {
+        "\(repo.refreshSeq)-\(units.temperatureUnit)-\(units.skinTempPreferred.rawValue)"
     }
 
     @MainActor
@@ -206,12 +226,11 @@ struct GlanceVitalPage: View {
     @EnvironmentObject private var repo: Repository
     let key: String
 
-    @State private var vitals = GlanceVitalInputs()
+    @State private var readings: [BodyVitalReading] = []
     private let units = GlanceUnitPrefs()
 
     var body: some View {
-        let reading = vitals.readings(repo, temperatureUnit: units.temperatureUnit,
-                                      skinTempPreferred: units.skinTempPreferred).first { $0.key == key }
+        let reading = readings.first { $0.key == key }
         GlanceScorePage(title: reading?.label ?? "", tint: reading?.metricColor ?? StrandPalette.accent, guide: nil) {
             if let reading {
                 VStack(spacing: NoopMetrics.space2) {
@@ -239,14 +258,6 @@ struct GlanceVitalPage: View {
                             .font(StrandFont.caption)
                             .foregroundStyle(StrandPalette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
-                        if let spark = reading.sparkline, spark.count >= 2 {
-                            GlanceSparkBand(values: spark, band: range, tint: reading.metricColor)
-                                .frame(height: 120)
-                                .padding(.top, NoopMetrics.space2)
-                            Text("Recent nights. The shaded band is the normal range.")
-                                .font(StrandFont.caption)
-                                .foregroundStyle(StrandPalette.textTertiary)
-                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(NoopMetrics.cardPadding)
@@ -264,13 +275,15 @@ struct GlanceVitalPage: View {
                 .padding(NoopMetrics.cardPadding)
                 .background(NoopPanelSurface(cornerRadius: NoopMetrics.cardRadius))
 
-                NavigationLink { GlanceVitalInputs.route(key).destination } label: {
-                    GlanceLinkRow(title: String(localized: "All details"), icon: "chart.xyaxis.line")
-                }
-                .buttonStyle(.plain)
+                GlanceTrendSections(series: GlanceTrendSeries(
+                    title: reading.label, icon: GlanceVitalInputs.icon(key), tint: reading.metricColor,
+                    points: reading.series, format: { [unit = reading.unit, f = reading.format] in "\(f($0)) \(unit)" },
+                    band: reading.normalRange, detailsRoute: GlanceVitalInputs.route(key)))
             }
         }
-        .task { vitals = await GlanceVitalInputs.load(repo) }
+        .task(id: GlanceVitalInputs.reloadKey(repo, units: units)) {
+            readings = await GlanceVitalInputs.loadReadings(repo, units: units)
+        }
     }
 
     /// "32.0 – 33.1 °C", in the reading's own display format.
@@ -306,12 +319,12 @@ struct GlanceChargePage: View {
     let date: Date
     let dayKey: String
 
-    @State private var vitals = GlanceVitalInputs()
+    @State private var readings: [BodyVitalReading] = []
     private let units = GlanceUnitPrefs()
 
     var body: some View {
         GlanceScorePage(title: String(localized: "Charge"), tint: tint, guide: .charge) {
-            GlanceScoreHero(title: String(localized: "Charge"), subtitle: GlanceFormat.dayTitle(date),
+            GlanceScoreHero(subtitle: GlanceFormat.dayTitle(date),
                             score: charge, tint: tint, caption: stateLabel)
             GlanceSynthesisCard(text: synthesis)
             if charge == nil {
@@ -323,19 +336,24 @@ struct GlanceChargePage: View {
             breakdown
             GlanceSectionTitle(title: String(localized: "Trends"))
             let chargeTrend = GlanceHistory.trend(days: repo.days, through: dayKey, value: charge, \.recovery)
-            NavigationLink { TabRoute.metric(HeroRingMetric.charge).destination } label: {
+            NavigationLink {
+                GlanceTrendDetailPage(series: GlanceTrendSeries(
+                    title: String(localized: "Charge"), icon: "heart.circle.fill", tint: StrandPalette.chargeColor,
+                    points: GlanceHistory.points(days: repo.days, through: dayKey, \.recovery),
+                    format: { "\(Int($0.rounded()))%" }, detailsRoute: .metric(HeroRingMetric.charge)))
+            } label: {
                 GlanceTrendRow(icon: "heart.circle.fill", title: String(localized: "Charge"),
                                value: GlanceFormat.whole(charge, unit: "%"), status: .usual(chargeTrend.result),
                                values: chargeTrend.values, band: chargeTrend.result.band, tint: StrandPalette.chargeColor)
             }
             .buttonStyle(LiquidPressStyle())
-            ForEach(vitals.readings(repo, temperatureUnit: units.temperatureUnit,
-                                    skinTempPreferred: units.skinTempPreferred)
-                        .filter(GlanceVitalInputs.showsOnGlance)) { reading in
+            ForEach(readings.filter(GlanceVitalInputs.showsOnGlance)) { reading in
                 GlanceVitalTrendRow(reading: reading)
             }
         }
-        .task { vitals = await GlanceVitalInputs.load(repo) }
+        .task(id: GlanceVitalInputs.reloadKey(repo, units: units)) {
+            readings = await GlanceVitalInputs.loadReadings(repo, units: units)
+        }
     }
 
     private var tint: Color { charge.map { StrandPalette.recoveryColor($0) } ?? StrandPalette.chargeColor }
@@ -384,17 +402,18 @@ struct GlanceEffortPage: View {
 
     var body: some View {
         GlanceScorePage(title: String(localized: "Effort"), tint: StrandPalette.effortColor, guide: .effort) {
-            GlanceScoreHero(title: String(localized: "Effort"), subtitle: GlanceFormat.dayTitle(date),
+            GlanceScoreHero(subtitle: GlanceFormat.dayTitle(date),
                             score: effort, tint: StrandPalette.effortColor,
                             maxValue: EffortTarget.axisMax(scale), decimals: decimals,
-                            caption: band.map { String(localized: "Target Effort: \(rangeText($0))") })
+                            caption: band.map { String(localized: "Target Effort: \(rangeText($0))") },
+                            target: band)
             HStack(spacing: NoopMetrics.gap) {
                 GlanceStatTile(icon: "flame.fill", label: String(localized: "Calories"), value: caloriesText)
                 GlanceStatTile(icon: "figure.walk", label: String(localized: "Steps"), value: stepsText)
             }
             VStack(alignment: .leading, spacing: NoopMetrics.space3) {
                 Text("Today's Effort target").strandOverline()
-                EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort)
+                EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort, decimals: decimals)
                 EffortTargetStatusText(standing: EffortTarget.standing(effort: effort, band: band),
                                        hasBand: band != nil, decimals: decimals)
             }
@@ -422,7 +441,15 @@ struct GlanceEffortPage: View {
             let trend = GlanceHistory.trend(days: repo.days, through: dayKey, value: effort) {
                 $0.strain.map { UnitFormatter.effortValue($0, scale: scale) }
             }
-            NavigationLink { TabRoute.metric(HeroRingMetric.effort).destination } label: {
+            NavigationLink {
+                GlanceTrendDetailPage(series: GlanceTrendSeries(
+                    title: String(localized: "Effort"), icon: "bolt.fill", tint: StrandPalette.effortColor,
+                    points: GlanceHistory.points(days: repo.days, through: dayKey) {
+                        $0.strain.map { UnitFormatter.effortValue($0, scale: scale) }
+                    },
+                    format: { [decimals] in String(format: "%.\(decimals)f", locale: AppLanguage.activeLocale, $0) },
+                    detailsRoute: .metric(HeroRingMetric.effort)))
+            } label: {
                 GlanceTrendRow(icon: "bolt.fill", title: String(localized: "Effort"),
                                value: effort.map { String(format: "%.\(decimals)f", locale: AppLanguage.activeLocale, $0) },
                                status: .usual(trend.result), values: trend.values, band: trend.result.band,
@@ -476,7 +503,7 @@ struct GlanceRestPage: View {
 
     var body: some View {
         GlanceScorePage(title: String(localized: "Rest"), tint: StrandPalette.restColor, guide: .rest) {
-            GlanceScoreHero(title: String(localized: "Rest"), subtitle: GlanceFormat.dayTitle(date),
+            GlanceScoreHero(subtitle: GlanceFormat.dayTitle(date),
                             score: restScore, tint: StrandPalette.restColor)
             let night = GlanceHistory.night(repo.sleeps, dayKey: dayKey)
             HStack(spacing: NoopMetrics.gap) {
@@ -493,14 +520,17 @@ struct GlanceRestPage: View {
             GlanceSectionTitle(title: String(localized: "Trends"))
             let rest = GlanceHistory.trend(restPoints, through: dayKey, value: restScore)
             trendLink(HeroRingMetric.rest, icon: "moon.zzz.fill", title: String(localized: "Rest"),
-                      value: GlanceFormat.whole(restScore, unit: "%"), rest)
+                      value: GlanceFormat.whole(restScore, unit: "%"), rest,
+                      points: restPoints.filter { $0.day <= dayKey }, format: { "\(Int($0.rounded()))%" })
             durationRow("sleep_total_min", icon: "clock.fill", title: String(localized: "Time asleep"), \.totalSleepMin)
             durationRow("sleep_rem_min", icon: "moon.fill", title: String(localized: "REM"), \.remMin)
             durationRow("sleep_deep_min", icon: "moon.circle.fill", title: String(localized: "Deep"), \.deepMin)
             durationRow("sleep_light_min", icon: "moon", title: String(localized: "Light"), \.lightMin)
             let eff = GlanceHistory.trend(days: repo.days, through: dayKey, value: day?.efficiency, \.efficiency)
             trendLink("sleep_efficiency", icon: "gauge.with.dots.needle.67percent", title: String(localized: "Efficiency"),
-                      value: GlanceFormat.whole(day?.efficiency, unit: "%"), eff)
+                      value: GlanceFormat.whole(day?.efficiency, unit: "%"), eff,
+                      points: GlanceHistory.points(days: repo.days, through: dayKey, \.efficiency),
+                      format: { "\(Int($0.rounded()))%" })
         }
         .task {
             restPoints = await repo.exploreSeries(key: "sleep_performance", source: "my-whoop").map { ($0.day, $0.value) }
@@ -511,12 +541,19 @@ struct GlanceRestPage: View {
                              _ column: @escaping (DailyMetric) -> Double?) -> some View {
         let value = day.flatMap(column)
         let trend = GlanceHistory.trend(days: repo.days, through: dayKey, value: value, column)
-        return trendLink(key, icon: icon, title: title, value: value.map { GlanceDuration.text(minutes: $0) }, trend)
+        return trendLink(key, icon: icon, title: title, value: value.map { GlanceDuration.text(minutes: $0) }, trend,
+                         points: GlanceHistory.points(days: repo.days, through: dayKey, column),
+                         format: { GlanceDuration.text(minutes: $0) })
     }
 
     private func trendLink(_ key: String, icon: String, title: String, value: String?,
-                           _ trend: (values: [Double], result: UsualRange.Result)) -> some View {
-        NavigationLink { TabRoute.metric(key).destination } label: {
+                           _ trend: (values: [Double], result: UsualRange.Result),
+                           points: [(day: String, value: Double)], format: @escaping (Double) -> String) -> some View {
+        NavigationLink {
+            GlanceTrendDetailPage(series: GlanceTrendSeries(title: title, icon: icon, tint: StrandPalette.restLine,
+                                                            points: points, format: format,
+                                                            detailsRoute: .metric(key)))
+        } label: {
             GlanceTrendRow(icon: icon, title: title, value: value, status: .usual(trend.result),
                            values: trend.values, band: trend.result.band, tint: StrandPalette.restLine)
         }
