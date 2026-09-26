@@ -403,6 +403,13 @@ enum GlanceFormat {
         return String(format: "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60)
     }
 
+    /// A score exactly as its ring prints it (`CountUpNumber`): a whole number rounded half away from
+    /// zero, or `decimals` places. A row and the ring above it must never print one value two ways — a
+    /// bare "%.0f" rounds 82.5 to 82 while the ring shows 83.
+    static func score(_ v: Double, decimals: Int) -> String {
+        decimals > 0 ? String(format: "%.\(decimals)f", v) : "\(Int(v.rounded()))"
+    }
+
     /// A whole-number figure with an optional unit, "52 bpm".
     static func whole(_ v: Double?, unit: String = "") -> String? {
         guard let v else { return nil }

@@ -364,7 +364,7 @@ struct GlanceChargePage: View {
                                             hrvBaselineEpoch: Baselines.hrvBaselineEpoch())
         }
         if let result, !result.drivers.isEmpty {
-            GlanceSectionTitle(title: String(localized: "What shaped it"))
+            // No section title: the breakdown carries its own "What shaped it" header.
             // No `skinTempRel`: the skin-temperature driver row already states the deviation, and the
             // relative row would show the same fact a second time in different words.
             ChargeBreakdownSection(drivers: result.drivers, confidence: result.confidence)
@@ -440,11 +440,11 @@ struct GlanceEffortPage: View {
                     points: GlanceHistory.points(days: repo.days, through: dayKey) {
                         $0.strain.map { UnitFormatter.effortValue($0, scale: scale) }
                     },
-                    format: { [decimals] in String(format: "%.\(decimals)f", locale: AppLanguage.activeLocale, $0) },
+                    format: { [decimals] in GlanceFormat.score($0, decimals: decimals) },
                     detailsRoute: .metric(HeroRingMetric.effort)))
             } label: {
                 GlanceTrendRow(icon: "bolt.fill", title: String(localized: "Effort"),
-                               value: effort.map { String(format: "%.\(decimals)f", locale: AppLanguage.activeLocale, $0) },
+                               value: effort.map { GlanceFormat.score($0, decimals: decimals) },
                                status: .usual(trend.result), values: trend.values, band: trend.result.band,
                                tint: StrandPalette.effortColor)
             }
