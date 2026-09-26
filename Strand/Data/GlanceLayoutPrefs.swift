@@ -12,7 +12,7 @@ enum GlanceLayoutPrefs {
     /// in.
     static let enabledKey = "today.glanceLayout"
 
-    /// `@AppStorage` key for Glance's experimental cards: the Energy estimate (`EnergyEstimate`) and Body
-    /// Age. Default OFF; each card is labelled experimental when shown.
+    /// `@AppStorage` key for Glance's experimental card, the Energy estimate (`EnergyEstimate`). Default
+    /// OFF; the card is labelled experimental when shown.
     static let experimentalKey = "today.glanceExperimental"
 }

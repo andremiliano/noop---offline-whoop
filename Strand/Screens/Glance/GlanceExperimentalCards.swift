@@ -2,9 +2,8 @@ import SwiftUI
 import StrandDesign
 import StrandAnalytics
 
-// Glance's experimental cards (#2463), shown only when the Glance experimental switch is on: the Energy
-// estimate, and Body Age from the Vitality model the Health tab already runs. Each card says what it is
-// and is never fed into another score.
+// Glance's experimental card (#2463), shown only when the Glance experimental switch is on: the Energy
+// estimate. It says what it is and is never fed into another score.
 
 /// A small "Experimental" tag for a card header.
 struct GlanceExperimentalTag: View {
@@ -91,65 +90,6 @@ struct GlanceEnergyCard: View {
                  ?? String(format: "%+d", Int(v.rounded())))
                 .font(StrandFont.bodyNumber)
                 .foregroundStyle(StrandPalette.textPrimary)
-        }
-    }
-}
-
-// MARK: - Body Age
-
-/// Body Age and Vitality exactly as the Health tab shows them (the stored `body_age` and `vitality`
-/// series). Opens the Health tab, where the full breakdown lives.
-struct GlanceBodyAgeCard: View {
-    @EnvironmentObject private var repo: Repository
-    @EnvironmentObject private var profile: ProfileStore
-    @State private var bodyAge: Double?
-    @State private var vitality: Double?
-
-    var body: some View {
-        NavigationLink(value: TabRoute.health) {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                HStack(spacing: NoopMetrics.space2) {
-                    Text("Body Age").font(StrandFont.headline).foregroundStyle(StrandPalette.textPrimary)
-                    GlanceExperimentalTag()
-                    Spacer()
-                    GlanceChevron()
-                }
-                if let ba = bodyAge {
-                    let delta = Double(profile.age) - ba
-                    HStack(alignment: .firstTextBaseline, spacing: NoopMetrics.space3) {
-                        Text(verbatim: String(format: "%.1f", locale: AppLanguage.activeLocale, ba))
-                            .font(StrandFont.number(34))
-                            .foregroundStyle(StrandPalette.textPrimary)
-                        Text(verbatim: BodyAgeText.delta(yrs: Int(abs(delta).rounded()), younger: delta >= 0))
-                            .font(StrandFont.subhead)
-                            .foregroundStyle(delta >= 0 ? StrandPalette.statusPositive : StrandPalette.statusWarning)
-                        Spacer()
-                        if let v = vitality {
-                            VStack(alignment: .trailing, spacing: 0) {
-                                Text(verbatim: "\(Int(v.rounded()))")
-                                    .font(StrandFont.number(20))
-                                    .foregroundStyle(StrandPalette.textPrimary)
-                                Text("Vitality").font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-                            }
-                        }
-                    }
-                } else {
-                    Text("A few more days and we can show your Vitality.")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
-                Text("A wellness estimate from your habits, not a clinical biological age.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-            }
-            .padding(NoopMetrics.cardPadding)
-            .background(NoopPanelSurface(cornerRadius: NoopMetrics.cardRadius))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(LiquidPressStyle())
-        .task(id: repo.refreshSeq) {
-            vitality = (await repo.exploreSeries(key: "vitality", source: "my-whoop")).last?.value
-            bodyAge = (await repo.exploreSeries(key: "body_age", source: "my-whoop")).last?.value
         }
     }
 }

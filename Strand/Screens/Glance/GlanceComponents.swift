@@ -355,7 +355,8 @@ struct GlanceScoreHero: View {
                              maxValue: maxValue, decimals: decimals, tapPassesThrough: true)
                 .overlay {
                     if let target {
-                        GlanceTargetArc(band: target, maxValue: maxValue, lineWidth: 4).padding(-10)
+                        LiquidTargetZone(from: target.lowerBound / maxValue, to: target.upperBound / maxValue,
+                                         tint: StrandPalette.textPrimary.opacity(0.5))
                     }
                 }
                 .padding(.vertical, NoopMetrics.space5)

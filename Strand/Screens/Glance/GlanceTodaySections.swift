@@ -9,13 +9,22 @@ import WhoopStore
 
 // MARK: - Score card
 
+/// One fact in the score card's plan row: what to aim for, as a label and a value.
+struct GlancePlanItem: Identifiable {
+    let icon: String
+    let tint: Color
+    let label: String
+    let value: String
+    var id: String { label }
+}
+
 /// The three rings, with the day's synthesis and Effort target beneath them in the same card.
 struct GlanceScoreCard<Rings: View>: View {
     let synthesis: String
     /// A second line under the synthesis — the calibration reason or the calm-day Effort note — or nil.
     let note: String?
-    /// The day's plan in one line (Effort to aim for, tonight's sleep), or nil.
-    let plan: String?
+    /// The day's plan (Effort to aim for, tonight's sleep), empty for none.
+    let plan: [GlancePlanItem]
     let effort: Double?
     let band: ClosedRange<Double>?
     let scale: EffortScale
@@ -44,19 +53,40 @@ struct GlanceScoreCard<Rings: View>: View {
                         .foregroundStyle(StrandPalette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if let plan {
-                    Text(verbatim: plan)
-                        .font(StrandFont.body.weight(.semibold))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, NoopMetrics.space1)
+                if !plan.isEmpty {
+                    HStack(spacing: NoopMetrics.space2) {
+                        ForEach(plan) { item in
+                            HStack(spacing: NoopMetrics.space2) {
+                                Image(systemName: item.icon)
+                                    .font(StrandFont.subhead)
+                                    .foregroundStyle(item.tint)
+                                    .frame(width: 18)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(verbatim: item.label)
+                                        .font(StrandFont.caption)
+                                        .foregroundStyle(StrandPalette.textSecondary)
+                                    Text(verbatim: item.value)
+                                        .font(StrandFont.number(17))
+                                        .foregroundStyle(StrandPalette.textPrimary)
+                                }
+                                .lineLimit(1).minimumScaleFactor(0.75)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, NoopMetrics.space3)
+                            .padding(.vertical, NoopMetrics.space2)
+                            .frame(maxWidth: .infinity)
+                            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(StrandPalette.surfaceInset.opacity(0.6)))
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                    .padding(.top, NoopMetrics.space1)
                 }
                 if showsTarget {
                     NavigationLink(value: GlanceScoreRoute.effort) {
                         VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                            // The range itself is in the plan line above; stating it here too would be
+                            // The range itself is in the plan row above; stating it here too would be
                             // the same fact twice.
-                            Text("Today's Effort target").strandOverline()
                             EffortTargetBar(axisMax: EffortTarget.axisMax(scale), band: band, effort: effort)
                             EffortTargetStatusText(standing: EffortTarget.standing(effort: effort, band: band),
                                                    hasBand: band != nil, decimals: decimals)

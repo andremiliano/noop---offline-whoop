@@ -326,3 +326,43 @@ extension GlanceTests {
                        cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 7)))
     }
 }
+
+// MARK: - Usual wake time
+
+extension GlanceTests {
+    private func utc() -> Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }
+
+    /// The median end of recent main sleeps; naps and afternoon ends are left out.
+    func testUsualWakeIsTheMedianEndOfMainSleeps() {
+        let cal = utc()
+        func night(_ d: Int, wakeH: Int, wakeM: Int, hours: Int = 8) -> (startTs: Int, endTs: Int) {
+            let end = cal.date(from: DateComponents(year: 2026, month: 9, day: d, hour: wakeH, minute: wakeM))!
+            return (Int(end.timeIntervalSince1970) - hours * 3600, Int(end.timeIntervalSince1970))
+        }
+        let sleeps = [night(20, wakeH: 7, wakeM: 0), night(21, wakeH: 7, wakeM: 30), night(22, wakeH: 6, wakeM: 50),
+                      night(22, wakeH: 15, wakeM: 0, hours: 1),   // a nap: too short to count
+                      night(23, wakeH: 8, wakeM: 10)]
+        // Main-sleep ends 06:50, 07:00, 07:30, 08:10 → median (420 + 450) / 2 = 435 = 07:15.
+        XCTAssertEqual(TonightPlan.usualWakeMinutes(sleeps, calendar: cal), 435)
+        XCTAssertNil(TonightPlan.usualWakeMinutes(Array(sleeps.prefix(2)), calendar: cal))
+    }
+
+    /// With no wind-down setting the plan wakes at the usual time and says so; a setting wins over it.
+    func testPlanFallsBackToTheUsualWakeTime() throws {
+        let cal = utc()
+        let now = cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 17))!
+        let ledger = SleepDebtLedger(balanceMin: 0, nights: [], needMin: 480)
+        let usual = try XCTUnwrap(TonightPlan.plan(ledger: ledger, wakeMinutes: nil, usualWake: 435, now: now, calendar: cal))
+        XCTAssertEqual(usual.wakeSource, .usual)
+        XCTAssertEqual(usual.asleepBy, cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 23, minute: 15)))
+        let set = try XCTUnwrap(TonightPlan.plan(ledger: ledger, wakeMinutes: { _ in 420 }, usualWake: 435, now: now, calendar: cal))
+        XCTAssertEqual(set.wakeSource, .setting)
+        let none = try XCTUnwrap(TonightPlan.plan(ledger: ledger, wakeMinutes: nil, usualWake: nil, now: now, calendar: cal))
+        XCTAssertNil(none.wakeSource)
+        XCTAssertNil(none.asleepBy)
+    }
+}

@@ -66,24 +66,6 @@ struct EffortTargetBar: View {
     }
 }
 
-/// The target band drawn as an arc just outside a score ring, on the ring's own 0…`maxValue` axis, so a
-/// ring shows where today's Effort should land.
-struct GlanceTargetArc: View {
-    let band: ClosedRange<Double>
-    let maxValue: Double
-    var lineWidth: CGFloat = 5
-
-    var body: some View {
-        let lo = max(0, min(1, band.lowerBound / maxValue)), hi = max(0, min(1, band.upperBound / maxValue))
-        Circle()
-            .trim(from: lo, to: max(lo, hi))
-            .stroke(StrandPalette.effortBright.opacity(0.55),
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-            .rotationEffect(.degrees(-90))
-            .accessibilityHidden(true)
-    }
-}
-
 /// One-line read of where today's Effort stands against its target, shared by the card and the sheet so
 /// the two always say the same thing.
 struct EffortTargetStatusText: View {

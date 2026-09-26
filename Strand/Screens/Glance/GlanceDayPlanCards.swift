@@ -33,9 +33,18 @@ struct GlanceTonightCard: View {
                     }
                     .buttonStyle(.plain)
                 } else if let wake = plan.wake {
-                    Text(verbatim: String(localized: "To wake at \(GlanceFormat.time(Int(wake.timeIntervalSince1970))), from your wind-down setting."))
+                    let time = GlanceFormat.time(Int(wake.timeIntervalSince1970))
+                    Text(verbatim: plan.wakeSource == .setting
+                         ? String(localized: "To wake at \(time), from your wind-down setting.")
+                         : String(localized: "To wake at \(time), your usual wake time lately."))
                         .font(StrandFont.caption)
                         .foregroundStyle(StrandPalette.textTertiary)
+                    if plan.wakeSource == .usual {
+                        NavigationLink { SmartAlarmView() } label: {
+                            GlanceLinkRow(title: String(localized: "Set a wake time instead"), icon: "alarm")
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
             .padding(NoopMetrics.cardPadding)

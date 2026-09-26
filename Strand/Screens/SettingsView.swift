@@ -1892,13 +1892,13 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if glanceLayoutEnabled {
                     Toggle(isOn: $glanceExperimentalEnabled) {
-                        Text("Experimental: Energy and Body Age")
+                        Text("Experimental: Energy estimate")
                             .font(StrandFont.subhead)
                             .foregroundStyle(StrandPalette.textPrimary)
                     }
                     .toggleStyle(.switch)
                     .tint(StrandPalette.accent)
-                    Text("Adds an Energy estimate and your Body Age to Today. Energy is a rough rule of thumb from your Charge, time awake, stress and Effort, and is not validated. Body Age is the Health tab's wellness estimate, not a clinical age.")
+                    Text("Adds an Energy estimate to Today: a rough rule of thumb from your Charge, time awake, stress and Effort. It is not validated.")
                         .font(StrandFont.caption)
                         .foregroundStyle(StrandPalette.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)

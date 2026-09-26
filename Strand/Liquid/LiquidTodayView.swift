@@ -726,7 +726,8 @@ struct LiquidTodayView: View {
                           decimals: effortScale == .whoop ? 1 : 0,
                           detailRoute: .metric(HeroRingMetric.effort),
                           simple: glance,
-                          scoreRoute: glance ? .effort : nil)
+                          scoreRoute: glance ? .effort : nil,
+                          targetBand: glance && selectedDayOffset == 0 ? effortTargetBand : nil)
             HeroScoreCell(label: String(localized: "Rest"), score: restScore, tint: StrandPalette.restColor,
                           animated: dataLoaded, onGuide: { guideSection = .rest },
                           detailRoute: .metric(HeroRingMetric.rest),
@@ -752,8 +753,9 @@ struct LiquidTodayView: View {
     /// day's timeline. A past day keeps the score card, the classic vitals and that day's timeline, since
     /// the stress curve and the Health Monitor describe now rather than a chosen day.
     @ViewBuilder private var glanceSections: some View {
+        let tonight = selectedDayOffset == 0 ? glanceTonight : nil
         GlanceScoreCard(synthesis: chargeDisplay.calibrationDetail ?? synthLine, note: glanceNote,
-                        plan: selectedDayOffset == 0 ? glancePlanLine : nil,
+                        plan: selectedDayOffset == 0 ? glancePlan(tonight) : [],
                         effort: heroEffortDisplay, band: effortTargetBand, scale: effortScale,
                         showsTarget: selectedDayOffset == 0, cardOpacity: cardOpacity) { heroRings }
         if selectedDayOffset == 0 {
@@ -768,7 +770,7 @@ struct LiquidTodayView: View {
             }
             GlanceSectionTitle(title: String(localized: "Health Monitor"))
             GlanceHealthMonitor(sleepMinutes: displayDay?.totalSleepMin, dayKey: selectedDayKey)
-            if let tonight = glanceTonight {
+            if let tonight {
                 GlanceSectionTitle(title: String(localized: "Tonight"))
                 GlanceTonightCard(plan: tonight)
             }
@@ -778,14 +780,15 @@ struct LiquidTodayView: View {
         }
         GlanceSectionTitle(title: String(localized: "Training Load"))
         TrainingLoadCard(days: repo.days)
-        if glanceExperimental && selectedDayOffset == 0 {
-            GlanceBodyAgeCard()
-        }
+
         GlanceSectionTitle(title: String(localized: "Timeline"))
         GlanceTimeline(workouts: workouts, scale: effortScale,
                        night: GlanceHistory.night(repo.sleeps, dayKey: selectedDayKey),
                        restScore: restScore)
-        if selectedDayOffset == 0 { JournalReminderCard() }
+        if selectedDayOffset == 0 {
+            JournalReminderCard()
+            GlanceBodyAgeRow()
+        }
     }
 
     /// Glance's experimental Energy estimate for now. It starts only from a Charge today scored itself: a
@@ -798,31 +801,39 @@ struct LiquidTodayView: View {
                                        effort: effortStrain(displayDay), now: Date())
     }
 
-    /// Tonight's plan from the Sleep tab's debt ledger and the wind-down wake time, when one is set.
+    /// Tonight's plan from the Sleep tab's debt ledger, waking at the wind-down setting's time when one
+    /// is set, else at the usual wake time. Read once per render and handed to both the plan row and the
+    /// Tonight card, so the two cannot resolve "now" a moment apart.
     private var glanceTonight: TonightPlan.Plan? {
         TonightPlan.plan(ledger: hostedSleepModel?.sleepDebtLedger,
                          wakeMinutes: WindDownNudge.isEnabled ? { WindDownNudge.wakeMinutes(forWeekday: $0) } : nil,
+                         usualWake: TonightPlan.usualWakeMinutes(repo.sleeps.map { ($0.startTs, $0.endTs) }),
                          now: Date())
     }
 
-    /// The day in one line: the Effort to aim for and tonight's sleep. The range and times are the same
-    /// values the target bar and the Tonight card show, so the line restates them rather than adding
-    /// numbers of its own.
-    private var glancePlanLine: String? {
-        var parts: [String] = []
+    /// The day's plan: the Effort to aim for and tonight's sleep. The range and times are the values the
+    /// target bar and the Tonight card resolve, restated here rather than worked out again.
+    private func glancePlan(_ tonight: TonightPlan.Plan?) -> [GlancePlanItem] {
+        var items: [GlancePlanItem] = []
         if let b = effortTargetBand {
             let f = "%.\(effortScale == .whoop ? 1 : 0)f"
-            let range = String(format: "\(f)–\(f)", locale: AppLanguage.activeLocale, b.lowerBound, b.upperBound)
-            parts.append(String(localized: "Aim for \(range) Effort today."))
+            items.append(GlancePlanItem(icon: "bolt.fill", tint: StrandPalette.effortColor,
+                                        label: String(localized: "Effort target"),
+                                        value: String(format: "\(f)–\(f)", locale: AppLanguage.activeLocale,
+                                                      b.lowerBound, b.upperBound)))
         }
-        if let t = glanceTonight {
+        if let t = tonight {
             if let asleep = t.asleepBy {
-                parts.append(String(localized: "Be asleep by \(GlanceFormat.time(Int(asleep.timeIntervalSince1970))) tonight."))
+                items.append(GlancePlanItem(icon: "moon.fill", tint: StrandPalette.restLine,
+                                            label: String(localized: "Asleep by"),
+                                            value: GlanceFormat.time(Int(asleep.timeIntervalSince1970))))
             } else {
-                parts.append(String(localized: "Aim for \(GlanceDuration.text(minutes: t.needMin)) of sleep tonight."))
+                items.append(GlancePlanItem(icon: "moon.fill", tint: StrandPalette.restLine,
+                                            label: String(localized: "Sleep need"),
+                                            value: GlanceDuration.text(minutes: t.needMin)))
             }
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " ")
+        return items
     }
 
     /// The line under Glance's synthesis: why calibration is not moving, else the calm-day Effort note —
@@ -2373,6 +2384,8 @@ private struct HeroScoreCell: View {
     /// `scoreRoute` wins over `detailRoute`; with neither, the cell is inert.
     var simple = false
     var scoreRoute: GlanceScoreRoute? = nil
+    /// Glance: today's target band on the ring's own axis, hatched onto the ring (Effort only).
+    var targetBand: ClosedRange<Double>? = nil
 
     /// The label row, shared by both layouts so their typography cannot drift apart.
     private var labelRow: some View {
@@ -2396,6 +2409,12 @@ private struct HeroScoreCell: View {
         let cell = VStack(spacing: 7) {
             LiquidScoreGauge(score: score, tint: tint, diameter: Self.vesselDiameter, animated: animated,
                              maxValue: maxValue, decimals: decimals, tapPassesThrough: true)
+                .overlay {
+                    if let targetBand {
+                        LiquidTargetZone(from: targetBand.lowerBound / maxValue, to: targetBand.upperBound / maxValue,
+                                         tint: StrandPalette.textPrimary.opacity(0.5))
+                    }
+                }
                 .allowsHitTesting(false)
             labelRow
         }

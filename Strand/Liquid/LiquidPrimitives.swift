@@ -100,6 +100,13 @@ enum LiquidRender {
     }
 
     /// Full-span track arc — geometry unchanged from the original vessel.
+    /// The ring's centre, radius and stroke width for a vessel drawn in `size` — the geometry `vessel`
+    /// draws its track and progress with, so an overlay can sit exactly on the ring.
+    static func ringGeometry(_ size: CGSize) -> (center: CGPoint, radius: CGFloat, lineWidth: CGFloat) {
+        let diameter = max(2, min(size.width, size.height) - 3)
+        return (CGPoint(x: size.width / 2, y: size.height / 2), diameter * 0.39, max(5, diameter * 0.105))
+    }
+
     private static func fullArc(center: CGPoint, radius: CGFloat) -> Path {
         var p = Path()
         p.addArc(center: center, radius: radius, startAngle: .degrees(-90),
@@ -533,5 +540,55 @@ struct LiquidScoreGauge: View {
     private func rollTo(_ v: Double?) {
         guard let v else { shown = 0; return }
         withAnimation(.easeOut(duration: 0.9)) { shown = v }
+    }
+}
+
+/// A target zone on a vessel's ring (#2463 Glance): the stretch from `from` to `to` (fractions of the
+/// ring, clockwise from the top, the progress arc's own axis) hatched on the ring itself, with a tick
+/// across the ring at each end so the edges read even where the progress arc already covers them.
+struct LiquidTargetZone: View {
+    let from: Double
+    let to: Double
+    let tint: Color
+
+    var body: some View {
+        Canvas { ctx, size in
+            let g = LiquidRender.ringGeometry(size)
+            let lo = max(0, min(1, from)), hi = max(lo, min(1, to))
+            let inner = g.radius - g.lineWidth / 2, outer = g.radius + g.lineWidth / 2
+            func point(_ r: CGFloat, _ fraction: Double, lean: Double = 0) -> CGPoint {
+                let a = (-90 + 360 * fraction) * .pi / 180 + lean
+                return CGPoint(x: g.center.x + r * CGFloat(cos(a)), y: g.center.y + r * CGFloat(sin(a)))
+            }
+            // Slanted hatch across the ring's width, spaced by arc length so small and large rings match.
+            let spacing = max(3.5, g.lineWidth * 0.45)
+            let step = Double(spacing / (2 * .pi * g.radius))
+            let lean = Double(g.lineWidth / g.radius) * 0.6
+            var hatch = Path()
+            var f = lo
+            while f <= hi {
+                hatch.move(to: point(inner, f))
+                hatch.addLine(to: point(outer, f, lean: lean))
+                f += step
+            }
+            var band = ctx
+            band.clip(to: Path { p in
+                p.addArc(center: g.center, radius: outer, startAngle: .degrees(-90 + 360 * lo),
+                         endAngle: .degrees(-90 + 360 * hi), clockwise: false)
+                p.addArc(center: g.center, radius: inner, startAngle: .degrees(-90 + 360 * hi),
+                         endAngle: .degrees(-90 + 360 * lo), clockwise: true)
+                p.closeSubpath()
+            })
+            band.stroke(hatch, with: .color(tint.opacity(0.9)), lineWidth: max(1, g.lineWidth * 0.12))
+            for edge in [lo, hi] {
+                var tick = Path()
+                tick.move(to: point(inner - 1.5, edge))
+                tick.addLine(to: point(outer + 1.5, edge))
+                ctx.stroke(tick, with: .color(StrandPalette.textPrimary),
+                           style: StrokeStyle(lineWidth: max(1.5, g.lineWidth * 0.16), lineCap: .round))
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
