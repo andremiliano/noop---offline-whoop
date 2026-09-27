@@ -19,7 +19,7 @@ struct GlanceTonightCard: View {
             HStack(spacing: NoopMetrics.gap) {
                 GlanceStatTile(icon: "moon.zzz.fill", label: String(localized: "Sleep need"),
                                value: GlanceDuration.text(minutes: plan.needMin))
-                GlanceStatTile(icon: "bed.double.fill", label: String(localized: "Asleep by"),
+                GlanceStatTile(icon: "bed.double.fill", label: String(localized: "Suggested bedtime"),
                                value: plan.asleepBy.map { GlanceFormat.time(Int($0.timeIntervalSince1970)) })
             }
             VStack(alignment: .leading, spacing: NoopMetrics.space2) {
@@ -35,8 +35,8 @@ struct GlanceTonightCard: View {
                 } else if let wake = plan.wake {
                     let time = GlanceFormat.time(Int(wake.timeIntervalSince1970))
                     Text(verbatim: plan.wakeSource == .setting
-                         ? String(localized: "To wake at \(time), from your wind-down setting.")
-                         : String(localized: "To wake at \(time), your usual wake time lately."))
+                         ? String(localized: "A suggestion for tonight: asleep by then gets your sleep need before your \(time) wake-up, from your wind-down setting.")
+                         : String(localized: "A suggestion for tonight: asleep by then gets your sleep need before your usual \(time) wake-up."))
                         .font(StrandFont.caption)
                         .foregroundStyle(StrandPalette.textTertiary)
                     if plan.wakeSource == .usual {

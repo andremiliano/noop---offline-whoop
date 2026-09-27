@@ -135,6 +135,10 @@ struct LiquidTodayView: View {
 
     // day navigation (0 = today, 1 = yesterday, …)
     @State private var selectedDayOffset = 0
+    /// The logical day this screen last loaded for. Checked once a minute: when the day rolls
+    /// (`Repository.logicalDayRolloverHour`) while Today stays open, nothing else re-runs the load, so
+    /// the screen kept showing the previous day until some unrelated refresh.
+    @State private var loadedLogicalDayKey = Repository.logicalDayKey(Date())
     @State private var showDayPicker = false
 
     // PERF: the body was rescanning repo.days (599 days) ~23× per pass for displayDay and ~3× for
@@ -411,6 +415,12 @@ struct LiquidTodayView: View {
             #endif
         }
         .coordinateSpace(name: Self.pullSpace)
+        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { now in
+            let key = Repository.logicalDayKey(now)
+            guard key != loadedLogicalDayKey else { return }
+            loadedLogicalDayKey = key
+            Task { await repo.refresh() }
+        }
         #if os(iOS)
         // #697 parity: ScreenScaffold already stops a vertical scroll from drifting/bouncing the
         // screen left-right on every other tab. Liquid Today runs its own ScrollView (not
@@ -825,7 +835,7 @@ struct LiquidTodayView: View {
         if let t = tonight {
             if let asleep = t.asleepBy {
                 items.append(GlancePlanItem(icon: "moon.fill", tint: StrandPalette.restLine,
-                                            label: String(localized: "Asleep by"),
+                                            label: String(localized: "Suggested bedtime"),
                                             value: GlanceFormat.time(Int(asleep.timeIntervalSince1970))))
             } else {
                 items.append(GlancePlanItem(icon: "moon.fill", tint: StrandPalette.restLine,
