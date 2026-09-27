@@ -4,6 +4,7 @@ import StrandAnalytics
 import StrandImport
 import WhoopStore
 import Foundation
+import Charts
 #if canImport(MapKit)
 import MapKit
 #endif
@@ -231,6 +232,12 @@ struct WorkoutDetailView: View {
                     Text("\(dateLabel(row.startTs)) · \(timeRangeLabel(row.startTs, row.endTs))")
                         .font(StrandFont.footnote)
                         .foregroundStyle(StrandPalette.textTertiary)
+                    if let sources = sourcesLine {
+                        Text(verbatim: sources)
+                            .font(StrandFont.footnote)
+                            .foregroundStyle(StrandPalette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Spacer(minLength: 0)
                 sourceBadge(row.source)
@@ -263,6 +270,20 @@ struct WorkoutDetailView: View {
                 StatTile(label: "Distance",
                          value: distanceLabel(row.distanceM),
                          caption: String(localized: "covered"),
+                         accent: StrandPalette.metricCyan)
+            }
+            // Pace from the row's distance and duration. The route card shows the same figure when a GPS
+            // route exists, so the tile appears only without one — one fact, one place on screen.
+            if (row.distanceM ?? 0) > 0, route.isEmpty, paceLabel != "–" {
+                StatTile(label: "Avg pace",
+                         value: paceLabel,
+                         caption: nil,
+                         accent: StrandPalette.effortBright)
+            }
+            if let cadence = cadenceStepsPerMinute {
+                StatTile(label: "Cadence",
+                         value: "\(cadence)",
+                         caption: String(localized: "steps/min"),
                          accent: StrandPalette.metricCyan)
             }
             // Steps for an on-foot sport (#398). Shown for the on-foot set even before the value lands, so
@@ -361,6 +382,30 @@ struct WorkoutDetailView: View {
 
     /// Avg pace from the row's GPS distance + duration, in the user's unit system: "m:ss /km" (metric) or
     /// "m:ss /mi" (imperial). "–" when distance or duration is missing/zero (pace undefined — honest).
+    /// Steps per minute over the session, for an on-foot sport with a step count.
+    private var cadenceStepsPerMinute: Int? {
+        guard let steps, WorkoutCatalog.isOnFoot(row.sport) else { return nil }
+        let minutes = (row.durationS ?? Double(row.endTs - row.startTs)) / 60
+        guard minutes >= 1 else { return nil }
+        return Int((Double(steps.count) / minutes).rounded())
+    }
+
+    /// Who supplied what, stated only where it is known: the workout's own source, and the steps' source.
+    /// Heart rate is not named: for an imported workout it is read from every imported source, so no
+    /// single one can honestly be credited.
+    private var sourcesLine: String? {
+        let recordedBy: String?
+        switch WorkoutSource.classify(row.source) {
+        case .apple: recordedBy = String(localized: "Workout from Apple Health")
+        case .whoop: recordedBy = String(localized: "Workout from your WHOOP import")
+        default: recordedBy = nil
+        }
+        guard let recordedBy else { return nil }
+        guard let steps else { return recordedBy }
+        return recordedBy + " · " + (steps.fromStrap ? String(localized: "steps from your strap")
+                                                     : String(localized: "steps from your phone"))
+    }
+
     private var paceLabel: String {
         guard let m = row.distanceM, m > 0 else { return "–" }
         let secs = row.durationS ?? Double(row.endTs - row.startTs)
@@ -416,15 +461,15 @@ struct WorkoutDetailView: View {
                     trailing: row.avgHr.map { String(localized: "avg \($0)") },
                     tint: StrandPalette.effortColor
                 ) {
-                    TrendChart(
-                        points: hrPoints,
-                        gradient: StrandPalette.effortGradient,
-                        valueRange: lo...hi,
-                        showsArea: true,
-                        valueFormat: { String(localized: "\(Int($0.rounded())) bpm") },
-                        dateFormat: { Self.tooltipTime.string(from: $0) },
-                        accessibilityLabel: String(localized: "Heart rate during \(WorkoutSource.displaySport(row.sport))")
-                    )
+                    // Not TrendChart: its axis is pinned to whole days (#2431), which stretches the domain
+                    // back to midnight and squeezes an hour-long session into the right edge. This chart
+                    // spans exactly the session, with clock-time marks.
+                    WorkoutHRChart(points: hrPoints, valueRange: lo...hi,
+                                   from: Date(timeIntervalSince1970: TimeInterval(row.startTs)),
+                                   to: Date(timeIntervalSince1970: TimeInterval(row.endTs)),
+                                   timeFormat: { Self.tooltipTime.string(from: $0) })
+                        .frame(height: 200)
+                        .accessibilityLabel(Text("Heart rate during \(WorkoutSource.displaySport(row.sport))"))
                 } footer: {
                     ChartFooter([
                         ("Avg", row.avgHr.map { String(localized: "\($0) bpm") } ?? "–"),
@@ -749,3 +794,75 @@ struct WorkoutRouteMap: View {
     .preferredColorScheme(.dark)
 }
 #endif
+
+/// A workout's heart rate over exactly the session window: area and line, clock-time marks, and a
+/// scrub/hover read-out using the shared chart tooltip pieces.
+private struct WorkoutHRChart: View {
+    let points: [TrendPoint]
+    let valueRange: ClosedRange<Double>
+    let from: Date
+    let to: Date
+    let timeFormat: (Date) -> String
+
+    @State private var selectedX: CGFloat?
+
+    var body: some View {
+        Chart {
+            ForEach(points) { p in
+                AreaMark(x: .value("Time", p.date), yStart: .value("Low", valueRange.lowerBound),
+                         yEnd: .value("BPM", p.value))
+                    .foregroundStyle(StrandPalette.effortColor.opacity(0.18))
+                    .interpolationMethod(.monotone)
+                LineMark(x: .value("Time", p.date), y: .value("BPM", p.value))
+                    .foregroundStyle(StrandPalette.effortColor)
+                    .interpolationMethod(.monotone)
+            }
+        }
+        .chartXScale(domain: from...max(to, from.addingTimeInterval(60)))
+        .chartYScale(domain: valueRange)
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 4)) { v in
+                AxisGridLine().foregroundStyle(StrandPalette.hairline.opacity(0.4))
+                AxisValueLabel {
+                    if let d = v.as(Date.self) { Text(verbatim: timeFormat(d)) }
+                }
+                .foregroundStyle(StrandPalette.textTertiary)
+                .font(StrandFont.footnote)
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
+                AxisGridLine().foregroundStyle(StrandPalette.hairline.opacity(0.4))
+                AxisValueLabel().foregroundStyle(StrandPalette.textTertiary).font(StrandFont.footnote)
+            }
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                let plot = proxy.plotRectCompat(in: geo)
+                ZStack(alignment: .topLeading) {
+                    if let sx = selectedX, let date: Date = proxy.value(atX: sx - plot.minX),
+                       let p = points.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }),
+                       let px = proxy.position(forX: p.date), let py = proxy.position(forY: p.value) {
+                        let cx = px + plot.minX
+                        CrosshairRule(x: cx, height: geo.size.height)
+                        HighlightDot(color: StrandPalette.effortColor).position(x: cx, y: py + plot.minY)
+                        PositionedTooltip(anchor: CGPoint(x: cx, y: py + plot.minY), container: geo.size,
+                                          tooltip: ChartTooltip(value: String(localized: "\(Int(p.value.rounded())) bpm"),
+                                                                label: timeFormat(p.date)))
+                    }
+                }
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 0)
+                    .onChanged { g in var t = Transaction(); t.disablesAnimations = true; withTransaction(t) { selectedX = g.location.x } }
+                    .onEnded { _ in selectedX = nil })
+                .onContinuousHover(coordinateSpace: .local) { phase in
+                    switch phase {
+                    case .active(let loc): selectedX = loc.x
+                    case .ended: selectedX = nil
+                    }
+                }
+            }
+        }
+    }
+}
