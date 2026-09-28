@@ -449,7 +449,7 @@ struct GlanceEffortPage: View {
                                tint: StrandPalette.effortColor)
             }
             .buttonStyle(LiquidPressStyle())
-            TrainingLoadCard(days: repo.days)
+            GlanceTrainingLoadCard(days: repo.days)
         }
         .task { zoneMinutes = await repo.workoutZoneMinutes(from: from, to: to, zoneSet: profile.hrZoneSet) }
     }

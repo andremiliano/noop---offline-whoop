@@ -789,7 +789,7 @@ struct LiquidTodayView: View {
             recoveryVitalsSection
         }
         GlanceSectionTitle(title: String(localized: "Training Load"))
-        TrainingLoadCard(days: repo.days)
+        GlanceTrainingLoadCard(days: repo.days)
 
         GlanceSectionTitle(title: String(localized: "Timeline"))
         GlanceTimeline(workouts: workouts, scale: effortScale,

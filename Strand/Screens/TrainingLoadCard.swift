@@ -73,7 +73,8 @@ struct TrainingLoadCard: View {
 
     /// Model straight from the training-load engine — NOT the paired `evaluateWithTrainingLoad`, which
     /// would also run the full Readiness synthesis this card never uses. `DailyMetric.strain` is the load.
-    private static func computeResult(days: [DailyMetric]) -> TrainingLoadEngine.Result {
+    /// Shared with Glance's training-load card, so both draw the same model from the same inputs.
+    static func computeResult(days: [DailyMetric]) -> TrainingLoadEngine.Result {
         let loads = days.map { TrainingLoadEngine.DailyLoad(day: $0.day, load: $0.strain) }
         return TrainingLoadEngine.evaluate(days: loads)
     }
