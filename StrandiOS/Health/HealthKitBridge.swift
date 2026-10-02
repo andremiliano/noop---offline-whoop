@@ -1150,8 +1150,11 @@ final class HealthKitBridge: ObservableObject {
         }
         let cursor = UserDefaults.standard.integer(forKey: hrWriteCursorKey)
         let windowStart = cursor > 0 ? max(fromTs, cursor - 48 * 3600) : fromTs
-        let buckets = (try? await whoopStore.hrBuckets(deviceId: noopDeviceId, from: windowStart,
-                                                       to: nowTs, bucketSeconds: 60)) ?? []
+        // The charts' own read: the active strap, every registered strap and the canonical id, unioned. A
+        // single-id read (this used `noopDeviceId` alone) finds nothing when the strap's heart rate was banked
+        // under another of them, which a re-paired or re-added strap does (#904/#908), so the stream was
+        // skipped for those wearers while the same heart rate plotted fine in NOOP.
+        let buckets = await repo.hrBuckets(from: windowStart, to: nowTs, bucketSeconds: 60)
         guard !buckets.isEmpty else {
             heartRateWriteStatus = "Heart rate not written: NOOP has no strap heart rate since \(Date(timeIntervalSince1970: TimeInterval(windowStart)).formatted(date: .abbreviated, time: .shortened))."
             return
