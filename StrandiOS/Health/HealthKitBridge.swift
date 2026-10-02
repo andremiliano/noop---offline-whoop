@@ -168,8 +168,16 @@ final class HealthKitBridge: ObservableObject {
     private static let hourlyStepsBackfilledKey = "applehealth.hourlySteps.backfilled"
 
     /// A stable fingerprint of the read types currently requested.
+    ///
+    /// Includes the WRITE ids too. A write type added in an update (the 1-minute heart-rate stream, energy,
+    /// distance) stays `.notDetermined` for everyone who granted before it existed, and every writer guards
+    /// on `.sharingAuthorized`, so it is skipped without a word. A reader that scores from heart rate
+    /// (Bevel's resting HR) then finds no NOOP samples at all. Folding the write set into the fingerprint
+    /// makes the existing re-request cover them: HealthKit shows the sheet only for still-undetermined types.
     private static var readTypeSignature: String {
-        quantityReadIds.map(\.rawValue).sorted().joined(separator: ",")
+        let writes = (quantityWriteIds + highResQuantityWriteIds).filter { !writeDenied.contains($0) }
+        return (quantityReadIds.map(\.rawValue).sorted() + ["|write"] + writes.map(\.rawValue).sorted())
+            .joined(separator: ",")
     }
 
     private static func persistReadTypeSignature() {
