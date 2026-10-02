@@ -106,6 +106,52 @@ final class ChargeDriversTests: XCTestCase {
             verdict: "slightly below baseline, limiting recovery")])
     }
 
+    func testVerdictsMatchDisplayedPrecisionAndRoundedPoints() {
+        let cases: [(Double, Double, Int, Int, String)] = [
+            (51.3, 50.8, 1, 0, "slightly above baseline, supporting recovery"),
+            (51.3, 50.8, -1, 0, "slightly above baseline, limiting recovery"),
+            (50.8, 51.3, 1, 0, "slightly below baseline, supporting recovery"),
+            (50.8, 51.3, -1, 0, "slightly below baseline, limiting recovery"),
+            (17, 16, 0, 1, "above baseline, too small to change Charge"),
+            (15, 16, 0, 1, "below baseline, too small to change Charge"),
+            (51.3, 50.8, 0, 0, "at baseline"),
+        ]
+
+        for (value, baseline, points, fractionDigits, expected) in cases {
+            XCTAssertEqual(
+                RecoveryScorer.baselineVerdict(
+                    value: value, baseline: baseline,
+                    deltaPoints: points, fractionDigits: fractionDigits),
+                expected)
+        }
+    }
+
+    func testSkinTempVerdictUsesRoundedPointEffect() {
+        XCTAssertEqual(
+            RecoveryScorer.skinTempVerdict(0.2, deltaPoints: 0),
+            "near baseline")
+        XCTAssertEqual(
+            RecoveryScorer.skinTempVerdict(0.2, deltaPoints: -1),
+            "warmer than baseline, limiting recovery")
+        XCTAssertEqual(
+            RecoveryScorer.skinTempVerdict(-0.2, deltaPoints: -1),
+            "cooler than baseline, limiting recovery")
+    }
+
+    func testRestingHRRowCannotSayAboveWhenDisplayedValuesMatch() {
+        let drivers = RecoveryScorer.chargeDrivers(
+            hrv: 50, rhr: 51.3, resp: nil,
+            hrvBaseline: baseline(mean: 50, sigma: 6),
+            rhrBaseline: baseline(mean: 50.8, sigma: 0.1),
+            respBaseline: nil, sleepPerf: nil)
+        let rhr = drivers.first { $0.label == "Resting heart rate" }!
+
+        XCTAssertEqual(rhr.valueText, "51 bpm")
+        XCTAssertEqual(rhr.baselineText, "51 bpm baseline")
+        XCTAssertLessThan(rhr.deltaPoints, 0)
+        XCTAssertEqual(rhr.verdict, "slightly above baseline, limiting recovery")
+    }
+
     // MARK: - Presence / omission
 
     func testColdStartHRVBaselineYieldsNoDrivers() {
@@ -153,8 +199,8 @@ final class ChargeDriversTests: XCTestCase {
         // round to 0 points honestly). Each MATERIAL term (HRV 0.55, resting HR 0.20, Rest 0.15)
         // should push Charge UP, so its marginal-vs-neutral contribution is strictly positive.
         // Respiration is a deliberately-minor 0.05-weight term: it can legitimately be worth ~0
-        // points, so we assert only its DIRECTION (non-negative + a supporting verdict), not a
-        // fabricated magnitude.
+        // points, so its verdict must acknowledge when the visible difference is too small to move
+        // Charge rather than claim a supporting effect.
         let drivers = RecoveryScorer.chargeDrivers(
             hrv: 58, rhr: 53, resp: 15,
             hrvBaseline: baseline(mean: 50, sigma: 6), rhrBaseline: baseline(mean: 58, sigma: 3),
@@ -169,32 +215,11 @@ final class ChargeDriversTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(resp.deltaPoints, 0)   // minor 0.05-weight term; direction below
         XCTAssertTrue(hrv.verdict.contains("supporting recovery"))
         XCTAssertTrue(rhr.verdict.contains("supporting recovery"))
-        // A minor term that rounds to 0 points states its direction without claiming an effect.
-        XCTAssertTrue(resp.deltaPoints > 0 ? resp.verdict == "below baseline, supporting recovery"
-                                           : resp.verdict == "below baseline, too small to change Charge")
-    }
-
-    /// The row's words must agree with what the row prints: equal printed values read "at baseline" even
-    /// when the raw values differ, a difference worth 0 points claims no effect, and skin temperature is
-    /// "near baseline" only when it cost nothing.
-    func testVerdictsAgreeWithThePrintedValuesAndPoints() {
-        typealias R = RecoveryScorer
-        // Printed 51 vs 51, worth 0 points: at baseline, whatever the raw values.
-        XCTAssertEqual(R.lowerIsBetterVerdict(value: 51.3, baseline: 50.8, shown: 51, shownBaseline: 51, points: 0),
-                       "at baseline")
-        // Printed tie that still cost a point: said as slight, never as "at baseline".
-        XCTAssertEqual(R.lowerIsBetterVerdict(value: 51.3, baseline: 50.8, shown: 51, shownBaseline: 51, points: -1),
-                       "slightly above baseline, limiting recovery")
-        // A printed difference worth 0 points claims no effect.
-        XCTAssertEqual(R.lowerIsBetterVerdict(value: 52, baseline: 51, shown: 52, shownBaseline: 51, points: 0),
-                       "above baseline, too small to change Charge")
-        XCTAssertEqual(R.lowerIsBetterVerdict(value: 55, baseline: 51, shown: 55, shownBaseline: 51, points: -3),
-                       "above baseline, limiting recovery")
-        XCTAssertEqual(R.hrvVerdict(value: 40, baseline: 50, shown: 40, shownBaseline: 50, points: -8),
-                       "below baseline, limiting recovery")
-        XCTAssertEqual(R.hrvVerdict(value: 50, baseline: 50, shown: 50, shownBaseline: 50, points: 0), "at baseline")
-        XCTAssertEqual(R.skinTempVerdict(0.2, points: -1), "warmer than baseline, limiting recovery")
-        XCTAssertEqual(R.skinTempVerdict(0.2, points: 0), "near baseline")
+        XCTAssertEqual(
+            resp.verdict,
+            resp.deltaPoints == 0
+                ? "below baseline, too small to change Charge"
+                : "below baseline, supporting recovery")
     }
 
     func testBadInputsGiveNegativeContributions() {
@@ -323,5 +348,21 @@ final class ChargeDriversTests: XCTestCase {
         let rel = RecoveryScorer.skinTempRelative(deviationC: 0.7)!
         XCTAssertEqual(rel.deviationC, 0.7, accuracy: 1e-9)
         XCTAssertEqual(rel.tier, .warmer)
+    }
+
+    /// `displayRounded` is what makes a row and its verdict agree, so it is pinned exactly rather than to
+    /// a tolerance, and the same literals are pinned in the Kotlin twin's `displayRounded_matchesSwift`.
+    /// Halves round away from zero on both signs, which is the one place Java's half-UP `Math.round`
+    /// needed mirroring to match. Negatives are unreachable from today's callers and pinned anyway.
+    func testDisplayRoundedIsExactAndRoundsHalvesAwayFromZero() {
+        let cases: [(value: Double, digits: Int, expected: Double)] = [
+            (0.0, 0, 0.0), (51.4, 0, 51.0), (51.5, 0, 52.0), (50.8, 0, 51.0), (-51.5, 0, -52.0),
+            (0.0, 1, 0.0), (8.25, 1, 8.3), (15.25, 1, 15.3), (16.05, 1, 16.1), (15.0, 1, 15.0),
+            (20.95, 1, 21.0), (-8.25, 1, -8.3), (-0.35, 1, -0.4),
+        ]
+        for c in cases {
+            XCTAssertEqual(RecoveryScorer.displayRounded(c.value, fractionDigits: c.digits), c.expected,
+                           accuracy: 0.0, "displayRounded(\(c.value), \(c.digits))")
+        }
     }
 }

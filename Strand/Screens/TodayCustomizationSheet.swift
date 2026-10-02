@@ -324,15 +324,11 @@ private struct KeyMetricsCustomizationPage: View {
             onReset: onReset
         ) {
             Section("Display") {
-                Toggle(isOn: $detailed) {
-                    VStack(alignment: .leading, spacing: NoopMetrics.space1) {
-                        Text("Detailed tiles")
-                        Text("Show a trend graph beneath each metric.")
-                            .font(StrandFont.caption)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
+                Picker("Key Metrics", selection: $detailed) {
+                    Text("Today").tag(false)
+                    Text("Trends").tag(true)
                 }
-                .accessibilityLabel("Detailed tiles")
+                .pickerStyle(.segmented)
 
                 if detailed {
                     Picker("Trend window", selection: $windowDays) {

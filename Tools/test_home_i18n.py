@@ -422,10 +422,7 @@ class HomeLocalizationTest(unittest.TestCase):
             "static func skinTempDevText", 1
         )[0]
         verdicts = set(re.findall(r'(?:return|\?|:)\s*"([^"]+)"', verdict_block))
-        # Eighteen unique keys: the twelve original verdicts, plus the "slightly" (printed values tie but
-        # the term still moved the score) and "too small to change Charge" (a printed difference worth 0
-        # points) wordings for the baseline-relative terms. Pin the unique-key set size so syntax changes
-        # cannot silently evade extraction.
+        # Pin the unique-key set size so syntax changes cannot silently evade extraction.
         self.assertEqual(18, len(verdicts), "Verdict extraction changed; review the catalog contract")
 
         catalog = audit.load_catalog(ROOT / "Strand/Resources/Localizable.xcstrings")

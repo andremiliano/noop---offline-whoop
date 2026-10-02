@@ -180,8 +180,8 @@ extension RecoveryScorer {
             valueText: "\(Int(hrv.rounded())) ms",
             baselineText: "\(Int(hrvBaseline.baseline.rounded())) ms baseline",
             verdict: hrvVerdict(value: hrv, baseline: hrvBaseline.baseline,
-                                shown: hrv.rounded(), shownBaseline: hrvBaseline.baseline.rounded(),
-                                points: hrvPoints, saturationDetected: hrvSaturationDetected)))
+                                deltaPoints: hrvPoints,
+                                saturationDetected: hrvSaturationDetected)))
 
         // ── Resting HR (lower vs baseline supports recovery) ─────────────────────
         // Neutral = resting HR at the baseline mean.
@@ -195,23 +195,20 @@ extension RecoveryScorer {
                 deltaPoints: rhrPoints,
                 valueText: "\(Int(rhr.rounded())) bpm",
                 baselineText: "\(Int(b.baseline.rounded())) bpm baseline",
-                verdict: lowerIsBetterVerdict(value: rhr, baseline: b.baseline,
-                                              shown: rhr.rounded(), shownBaseline: b.baseline.rounded(),
-                                              points: rhrPoints)))
+                verdict: rhrVerdict(value: rhr, baseline: b.baseline, deltaPoints: rhrPoints)))
         }
 
         // ── Rest quality (the Rest composite; neutral at sleepPerfCenter) ────────
         if let sp = sleepPerf {
-            let sleepPoints = points(recovery(hrv: hrv, rhr: rhr, resp: resp,
-                                              hrvBaseline: hrvBaseline, rhrBaseline: rhrB,
-                                              respBaseline: respBaseline, sleepPerf: sleepPerfCenter,
-                                              skinTempDev: skinTempDev))
             drivers.append(ChargeDriver(
                 label: "Sleep quality",
-                deltaPoints: sleepPoints,
+                deltaPoints: points(recovery(hrv: hrv, rhr: rhr, resp: resp,
+                                             hrvBaseline: hrvBaseline, rhrBaseline: rhrB,
+                                             respBaseline: respBaseline, sleepPerf: sleepPerfCenter,
+                                             skinTempDev: skinTempDev)),
                 valueText: "\(Int((sp * 100).rounded()))%",
                 baselineText: "",   // centred on a fixed "good night", not a learned baseline
-                verdict: sleepVerdict(points: sleepPoints)))
+                verdict: sleepVerdict(sleepPerf: sp)))
         }
 
         // ── Respiration (lower vs baseline supports recovery) ────────────────────
@@ -224,27 +221,26 @@ extension RecoveryScorer {
             drivers.append(ChargeDriver(
                 label: "Respiratory rate",
                 deltaPoints: respPoints,
-                valueText: String(format: "%.1f br/min", locale: Locale(identifier: "en_US_POSIX"), r),
-                baselineText: String(format: "%.1f br/min baseline", locale: Locale(identifier: "en_US_POSIX"), b.baseline),
-                verdict: lowerIsBetterVerdict(value: r, baseline: b.baseline,
-                                              shown: (r * 10).rounded() / 10,
-                                              shownBaseline: (b.baseline * 10).rounded() / 10,
-                                              points: respPoints)))
+                valueText: String(format: "%.1f br/min", locale: Locale(identifier: "en_US_POSIX"),
+                                  displayRounded(r, fractionDigits: 1)),
+                baselineText: String(format: "%.1f br/min baseline", locale: Locale(identifier: "en_US_POSIX"),
+                                     displayRounded(b.baseline, fractionDigits: 1)),
+                verdict: respVerdict(value: r, baseline: b.baseline, deltaPoints: respPoints)))
         }
 
         // ── Skin-temp deviation (symmetric penalty: any drift lowers Charge) ─────
         // Neutral = zero drift, so the delta is always <= 0 (a penalty removed).
         if let dev = skinTempDev {
-            let skinPoints = points(recovery(hrv: hrv, rhr: rhr, resp: resp,
-                                             hrvBaseline: hrvBaseline, rhrBaseline: rhrB,
-                                             respBaseline: respBaseline, sleepPerf: sleepPerf,
-                                             skinTempDev: 0))
+            let skinTempPoints = points(recovery(hrv: hrv, rhr: rhr, resp: resp,
+                                                 hrvBaseline: hrvBaseline, rhrBaseline: rhrB,
+                                                 respBaseline: respBaseline, sleepPerf: sleepPerf,
+                                                 skinTempDev: 0))
             drivers.append(ChargeDriver(
                 label: "Skin temperature",
-                deltaPoints: skinPoints,
+                deltaPoints: skinTempPoints,
                 valueText: skinTempDevText(dev),
                 baselineText: "",   // a deviation already; the reference is the personal baseline (0)
-                verdict: skinTempVerdict(dev, points: skinPoints)))
+                verdict: skinTempVerdict(dev, deltaPoints: skinTempPoints)))
         }
 
         // Biggest mover first; stable on ties (preserves the append order above).
@@ -262,62 +258,88 @@ extension RecoveryScorer {
     // When adding or rewording a verdict, add the identical key to Strand's Localizable.xcstrings;
     // Tools/test_home_i18n.py enforces that complete engine-to-catalog contract.
 
-    // A verdict must agree with the two things its row shows: the value against its baseline at the
-    // precision printed, and the rounded points. The EFFECT (supporting / limiting) comes from the points;
-    // the DIRECTION from the printed values, falling back to the raw ones only when the printed values tie
-    // and the term still moved the score, which is then said as "slightly". Comparing raw values alone let
-    // a row read "51 bpm · 51 bpm baseline · 0 pts" and still say "above baseline, limiting recovery".
-
-    /// Where a value sits for the verdict: nil when the row honestly reads as at baseline.
-    private static func direction(value: Double, baseline: Double, shown: Double, shownBaseline: Double,
-                                  points: Int) -> (higher: Bool, slight: Bool)? {
-        if shown != shownBaseline { return (shown > shownBaseline, false) }
-        if points == 0 || value == baseline { return nil }
-        return (value > baseline, true)
-    }
-
-    static func hrvVerdict(value: Double, baseline: Double, shown: Double, shownBaseline: Double,
-                           points: Int, saturationDetected: Bool = false) -> String {
-        guard let d = direction(value: value, baseline: baseline, shown: shown, shownBaseline: shownBaseline,
-                                points: points) else { return "at baseline" }
-        if points == 0 {
-            return d.higher ? "above baseline, too small to change Charge" : "below baseline, too small to change Charge"
-        }
-        if d.higher { return d.slight ? "slightly above baseline, supporting recovery" : "above baseline, supporting recovery" }
+    /// Kotlin twin: `RecoveryDrivers.hrvVerdict`.
+    static func hrvVerdict(value: Double, baseline: Double, deltaPoints: Int,
+                           saturationDetected: Bool = false) -> String {
+        let verdict = baselineVerdict(value: value, baseline: baseline,
+                                      deltaPoints: deltaPoints, fractionDigits: 0)
         // Parasympathetic-saturation signature detected: resting HR is also low and decoupled from
-        // HRV. NAME the pattern, but keep the plain "limiting recovery" read, because that is what
-        // the score actually did: the easing is detected-only and did NOT change these points. The
-        // hedge is deliberate too, since the same low-HRV + low-RHR pattern is also reported for
-        // non-functional overreaching, which is the opposite of benign.
-        if saturationDetected {
+        // HRV. NAME the pattern only when the displayed direction and rounded points support the full
+        // statement. A sub-display difference uses the honest "slightly below" verdict instead.
+        if saturationDetected && verdict == "below baseline, limiting recovery" {
             return "below baseline, limiting recovery, though low resting HR suggests this may be parasympathetic saturation rather than fatigue"
         }
-        return d.slight ? "slightly below baseline, limiting recovery" : "below baseline, limiting recovery"
+        return verdict
     }
 
-    /// Resting HR and respiration, where lower than baseline supports recovery. `shown` and
-    /// `shownBaseline` are the values at the precision the row prints them.
-    static func lowerIsBetterVerdict(value: Double, baseline: Double, shown: Double, shownBaseline: Double,
-                                     points: Int) -> String {
-        guard let d = direction(value: value, baseline: baseline, shown: shown, shownBaseline: shownBaseline,
-                                points: points) else { return "at baseline" }
-        if points == 0 {
-            return d.higher ? "above baseline, too small to change Charge" : "below baseline, too small to change Charge"
+    /// Kotlin twin: `RecoveryDrivers.rhrVerdict`.
+    static func rhrVerdict(value: Double, baseline: Double, deltaPoints: Int) -> String {
+        baselineVerdict(value: value, baseline: baseline,
+                        deltaPoints: deltaPoints, fractionDigits: 0)
+    }
+
+    /// Kotlin twin: `RecoveryDrivers.respVerdict`.
+    static func respVerdict(value: Double, baseline: Double, deltaPoints: Int) -> String {
+        baselineVerdict(value: value, baseline: baseline,
+                        deltaPoints: deltaPoints, fractionDigits: 1)
+    }
+
+    /// Resolves a verdict from exactly what the row shows: direction follows the displayed precision,
+    /// while effect follows the already-rounded marginal points printed beside it.
+    /// The value as a row SHOWS it: rounded once, here, so the printed number and the verdict decided
+    /// from it cannot disagree. Rounding is explicit rather than left to `String(format:)`, because the
+    /// three formatters involved round `%.1f` differently at a half (glibc and swift-corelibs disagree
+    /// with each other, and both with Java's HALF_UP), so a verdict that matched one formatter would
+    /// contradict the row on another platform. Kotlin twin: `RecoveryDrivers.displayRounded`.
+    static func displayRounded(_ value: Double, fractionDigits: Int) -> Double {
+        let scale = pow(10.0, Double(fractionDigits))
+        return (value * scale).rounded(.toNearestOrAwayFromZero) / scale
+    }
+
+    /// Kotlin twin: `RecoveryDrivers.baselineVerdict`.
+    static func baselineVerdict(value: Double, baseline: Double, deltaPoints: Int,
+                                fractionDigits: Int) -> String {
+        let displayedValue = displayRounded(value, fractionDigits: fractionDigits)
+        let displayedBaseline = displayRounded(baseline, fractionDigits: fractionDigits)
+
+        if displayedValue == displayedBaseline {
+            if deltaPoints == 0 || value == baseline { return "at baseline" }
+            if value > baseline {
+                return deltaPoints > 0
+                    ? "slightly above baseline, supporting recovery"
+                    : "slightly above baseline, limiting recovery"
+            }
+            return deltaPoints > 0
+                ? "slightly below baseline, supporting recovery"
+                : "slightly below baseline, limiting recovery"
         }
-        if d.higher { return d.slight ? "slightly above baseline, limiting recovery" : "above baseline, limiting recovery" }
-        return d.slight ? "slightly below baseline, supporting recovery" : "below baseline, supporting recovery"
+
+        let above = displayedValue > displayedBaseline
+        if deltaPoints == 0 {
+            return above
+                ? "above baseline, too small to change Charge"
+                : "below baseline, too small to change Charge"
+        }
+        if above {
+            return deltaPoints > 0
+                ? "above baseline, supporting recovery"
+                : "above baseline, limiting recovery"
+        }
+        return deltaPoints > 0
+            ? "below baseline, supporting recovery"
+            : "below baseline, limiting recovery"
     }
 
-    static func sleepVerdict(points: Int) -> String {
-        if points > 0 { return "a strong night, supporting recovery" }
-        if points < 0 { return "below a good night, limiting recovery" }
+    static func sleepVerdict(sleepPerf: Double) -> String {
+        if sleepPerf > sleepPerfCenter { return "a strong night, supporting recovery" }
+        if sleepPerf < sleepPerfCenter { return "below a good night, limiting recovery" }
         return "a typical night"
     }
 
-    static func skinTempVerdict(_ dev: Double, points: Int) -> String {
-        // Symmetric penalty: any drift lowers Charge, so points are never positive. Near baseline means
-        // the drift cost nothing at the shown precision; otherwise the sign of the drift names it.
-        if points == 0 { return "near baseline" }
+    /// Kotlin twin: `RecoveryDrivers.skinTempVerdict`.
+    static func skinTempVerdict(_ dev: Double, deltaPoints: Int) -> String {
+        // Symmetric penalty: call a drift "near" only when it moved the displayed score by 0 points.
+        if deltaPoints == 0 { return "near baseline" }
         return dev > 0
             ? "warmer than baseline, limiting recovery"
             : "cooler than baseline, limiting recovery"

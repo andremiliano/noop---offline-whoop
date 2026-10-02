@@ -390,6 +390,7 @@ struct TodayView: View {
     // cheap heart-rate fingerprint, so a refresh that changed nothing costs one indexed COUNT and no
     // rows, and the iOS widget shares the same computation rather than scoring the day twice.
     @State private var hostedStressHours: [DaytimeStress.HourPoint] = []
+    @State private var hostedStressActivityMaskedHours = 0
 
     // TODAY's in-progress Effort (NOOP 0–100 axis), recomputed over the day's HR (local-midnight→now)
     // each load so the gauge tracks today as it accumulates rather than waiting on the heavy daily pass
@@ -1473,9 +1474,11 @@ struct TodayView: View {
                 // Compact top bar: profile/settings (left) · ‹ Today › day-nav (centre, bold) · strap
                 // battery (right). Replaces the big title + the full-width day-nav pill (WHOOP-style).
                 todayTopBar
-                HealthAlertBanner()
+                if selectedDayOffset == 0, let currentDay = repo.today?.day,
+                   currentDay == repo.days.last?.day { HealthAlertBanner() }
                 #else
-                HealthAlertBanner()
+                if selectedDayOffset == 0, let currentDay = repo.today?.day,
+                   currentDay == repo.days.last?.day { HealthAlertBanner() }
                 // Browse past days: chevrons + a date jump capped at today (no future days). Anchored to
                 // the LOGICAL day (the same anchor `selectedLogicalDay` uses) so the full-date label tracks
                 // the data shown in the 00:00-04:00 window instead of jumping a calendar day ahead (#14).
@@ -2021,7 +2024,7 @@ struct TodayView: View {
             // scorable beats at all, the Deep-window note would name a window that was never reached and
             // send the wearer to a setting that cannot help.
             if chargeLegacyRRGap {
-                chargeLegacyRRGapNote
+                ChargeLegacyRRGapNote()
             } else if chargeDeepWindowGap {
                 chargeDeepWindowGapNote
             } else if selectedDayOffset == 0 && !chargeScoreState.isCalibrating {
@@ -2069,31 +2072,6 @@ struct TodayView: View {
                                               firstRecordedDay: firstRecordedRRDay,
                                               firstScorableDay: firstScorableRRDay,
                                               avgHrv: d.avgHrv, totalSleepMin: d.totalSleepMin)
-    }
-
-    /// #1505: the note shown instead of a bare "-" when this night's beats predate transport labelling.
-    /// Same card shape as the #233 note it sits beside, on today AND a navigated past day alike, since a
-    /// past day is where this one is almost always read.
-    private var chargeLegacyRRGapNote: some View {
-        NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "waveform.path.ecg")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(StrandPalette.chargeColor)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(ChargeBreakdownFormat.chargeLegacyRRGapTitle)
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Text(ChargeBreakdownFormat.chargeLegacyRRGapDetail)
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(ChargeBreakdownFormat.chargeLegacyRRGapAccessibility)
     }
 
     /// #233: whether the SELECTED day's empty Charge is explained by the Deep-sleep HRV window finding no
@@ -2204,7 +2182,7 @@ struct TodayView: View {
                         // taps through to its own explanation rather than the generic empty note. Same
                         // precedence as the note above the rings: no scorable beats outranks no deep sleep.
                         if chargeLegacyRRGap {
-                            chargeLegacyRRGapNote
+                            ChargeLegacyRRGapNote()
                         } else if chargeDeepWindowGap {
                             chargeDeepWindowGapNote
                         } else if let banked = recoveryCalibration {
@@ -2526,6 +2504,12 @@ struct TodayView: View {
                             .font(StrandFont.subhead)
                             .foregroundStyle(StrandPalette.textTertiary)
                             .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
+                    }
+                    if let maskedCaption = stressActivityMaskedHoursCaption(hostedStressActivityMaskedHours) {
+                        Text(maskedCaption)
+                            .font(StrandFont.footnote)
+                            .foregroundStyle(StrandPalette.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -4611,14 +4595,17 @@ struct TodayView: View {
     private func loadHostedStress() async {
         guard HostedCardPrefs.decodeEnabled(hostedCardsRaw).contains(.stressToday) else {
             hostedStressHours = []
+            hostedStressActivityMaskedHours = 0
             return
         }
         // `timeline`, not `hours`: the half-step display series, so the curve tracks the day rather
         // than stepping through it, matching the widget and the Android card.
-        hostedStressHours = await StressDayCurve.today(
+        let result = await StressDayCurve.today(
             repo: repo,
             personalBaseline: PuffinExperiment.stressPersonalBaselineEnabled
-        )?.result.timeline ?? []
+        )?.result
+        hostedStressHours = result?.timeline ?? []
+        hostedStressActivityMaskedHours = result?.activityMaskedHours ?? 0
     }
 
     private func loadHostedSleepModel() async {
