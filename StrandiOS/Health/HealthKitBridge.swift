@@ -948,6 +948,17 @@ final class HealthKitBridge: ObservableObject {
             let wake = Date(timeIntervalSince1970: TimeInterval(s.endTs))
             wakeByDay[HealthKitBridge.dayString(wake)] = wake
         }
+        // day (of wake) → the middle of that night, where the one-per-night vitals are stamped so they sit
+        // INSIDE the sleep window the way a watch's overnight vitals do (see `HealthWriteback.midSleepTs`).
+        // ponytail: one sample per vital per night, where a watch writes several; add more only if a reader
+        // is shown to need a count.
+        var spansByDay: [String: [(startTs: Int, endTs: Int)]] = [:]
+        for s in sessions where s.endTs > s.effectiveStartTs {
+            spansByDay[HealthKitBridge.dayString(Date(timeIntervalSince1970: TimeInterval(s.endTs))), default: []]
+                .append((s.effectiveStartTs, s.endTs))
+        }
+        let midSleepByDay = spansByDay.compactMapValues { HealthWriteback.midSleepTs(spans: $0) }
+            .mapValues { Date(timeIntervalSince1970: TimeInterval($0)) }
         // Read NOOP's COMPUTED dailies (deviceId + "-noop"), which is the only place a strap-only
         // user's recovery/HRV/RHR/SpO₂/resp lives, then union with any imported `noopDeviceId` rows so
         // a user who ALSO imported a WHOOP export still gets the imported values. Imported overrides
@@ -994,7 +1005,7 @@ final class HealthKitBridge: ObservableObject {
         for row in rows {
             guard let date = HealthKitBridge.date(from: row.day) else { continue }
             let noon = cal.date(bySettingHour: 12, minute: 0, second: 0, of: date) ?? date
-            let at = wakeByDay[row.day] ?? noon
+            let at = midSleepByDay[row.day] ?? wakeByDay[row.day] ?? noon
             if let rhr = row.restingHr {
                 add(.restingHeartRate, HKUnit.count().unitDivided(by: .minute()), Double(rhr), row.day, at)
             }

@@ -354,4 +354,12 @@ final class HealthWritebackTests: XCTestCase {
         XCTAssertTrue(HealthWriteback.nightIsStillOpen(endTs: 1_000, newestHeartRateTs: 1_000, now: 1_000 + 2 * 3_600 - 1))
         XCTAssertFalse(HealthWriteback.nightIsStillOpen(endTs: 1_000, newestHeartRateTs: 1_000, now: 1_000 + 2 * 3_600))
     }
+
+    /// The midpoint of the longest span; a nap or an empty/negative span never moves it.
+    func testMidSleepIsTheMiddleOfTheLongestSpan() {
+        XCTAssertEqual(HealthWriteback.midSleepTs(spans: [(1000, 1000 + 8 * 3600), (50_000, 50_000 + 1800)]),
+                       1000 + 4 * 3600)
+        XCTAssertEqual(HealthWriteback.midSleepTs(spans: [(100, 100), (200, 150)]), nil)
+        XCTAssertNil(HealthWriteback.midSleepTs(spans: []))
+    }
 }

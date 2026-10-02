@@ -176,6 +176,17 @@ public enum HealthWriteback {
         "noop:\(kind):\(identity)"
     }
 
+    /// The instant INSIDE a night at which its one-per-night vitals (HRV, respiratory rate, SpO2, resting
+    /// HR) are stamped: the midpoint of the longest span, `(startTs, endTs)` in unix seconds, or nil with
+    /// none. A watch writes its overnight vitals during the sleep window, and a reader that scores a night
+    /// from "the vitals between bed and wake" finds nothing for a sample stamped at the wake instant
+    /// (the sleep interval's own end). Longest span so a nap ending later in the day does not move it.
+    public static func midSleepTs(spans: [(startTs: Int, endTs: Int)]) -> Int? {
+        spans.filter { $0.endTs > $0.startTs }
+            .max { $0.endTs - $0.startTs < $1.endTs - $1.startTs }
+            .map { $0.startTs + ($0.endTs - $0.startTs) / 2 }
+    }
+
     /// The vitals key: `noop:<metricId>:<day>`.
     public static func appleHealthVitalKey(metricId: String, day: String) -> String {
         appleHealthExternalUUID(kind: metricId, identity: day)
