@@ -55,6 +55,7 @@ struct SettingsView: View {
     /// as a "strap estimate (unverified)" fallback when no calibrated `spo2Pct` exists. Display-only —
     /// writes nothing to the strap. See [PuffinExperiment.spo2CandidateDisplayKey].
     @AppStorage(PuffinExperiment.spo2CandidateDisplayKey) private var spo2CandidateDisplayEnabled = false
+    @AppStorage(PuffinExperiment.writeSpo2EstimateKey) private var writeSpo2Estimate = false
     @AppStorage(AppModel.ouraAllDayLiveHRKey) private var ouraAllDayLiveHREnabled = false   // item 27
 
     /// #1545 opt-in: score Effort with Banister's exponential TRIMP instead of Edwards' heart-rate zones.
@@ -2045,6 +2046,19 @@ struct SettingsView: View {
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
+                if spo2CandidateDisplayEnabled {
+                    Toggle(isOn: $writeSpo2Estimate) {
+                        Text("Also write this estimate to Apple Health")
+                            .font(StrandFont.subhead)
+                            .foregroundStyle(StrandPalette.textPrimary)
+                    }
+                    .toggleStyle(.switch)
+                    .tint(StrandPalette.accent)
+                    Text("Off by default. Apps that read Apple Health, such as Bevel, will show it as your blood oxygen. It is an unverified estimate: wrist sensors like this are typically off by about 3 percentage points even in research studies, and the value is not a medical measurement. Each sample is tagged as an estimate in its metadata. Turning this off removes the estimates NOOP wrote.")
+                        .font(StrandFont.caption)
+                        .foregroundStyle(StrandPalette.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }

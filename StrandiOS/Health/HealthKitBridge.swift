@@ -66,6 +66,7 @@ final class HealthKitBridge: ObservableObject {
     /// has no heart rate in the window, which is otherwise indistinguishable from "it worked".
     @Published private(set) var heartRateWriteStatus: String?
 
+
     private let store = HKHealthStore()
     private let repo: Repository
     /// Source id imported HealthKit data lands under (matches `AppModel.appleDeviceId`).
@@ -989,7 +990,8 @@ final class HealthKitBridge: ObservableObject {
 
         struct Candidate { let type: HKQuantityType; let key: String; let sample: HKQuantitySample }
         var candidates: [Candidate] = []
-        func add(_ id: HKQuantityTypeIdentifier, _ unit: HKUnit, _ value: Double, _ day: String, _ at: Date) {
+        func add(_ id: HKQuantityTypeIdentifier, _ unit: HKUnit, _ value: Double, _ day: String, _ at: Date,
+                 extraMetadata: [String: Any] = [:]) {
             guard let type = HKQuantityType.quantityType(forIdentifier: id),
                   store.authorizationStatus(for: type) == .sharingAuthorized else { return }
             // #1503: the key carries NO device-id segment. The previous scheme embedded the active
@@ -1001,7 +1003,7 @@ final class HealthKitBridge: ObservableObject {
                 type: type,
                 quantity: .init(unit: unit, doubleValue: value),
                 start: at, end: at,
-                metadata: [HKMetadataKeyExternalUUID: key]
+                metadata: [HKMetadataKeyExternalUUID: key].merging(extraMetadata) { a, _ in a }
             )
             candidates.append(Candidate(type: type, key: key, sample: sample))
         }
@@ -1012,6 +1014,17 @@ final class HealthKitBridge: ObservableObject {
             guard let type = HKQuantityType.quantityType(forIdentifier: id),
                   store.authorizationStatus(for: type) == .sharingAuthorized else { return }
             retracted[type, default: []].append(HealthWriteback.appleHealthVitalKey(metricId: id.rawValue, day: day))
+        }
+
+        // The strap's unverified SpO₂ estimate by day, only when the writer is opted in AND the estimate is
+        // being computed (the engine produces it only while the display toggle is on).
+        let writeSpo2Estimate = UserDefaults.standard.bool(forKey: PuffinExperiment.writeSpo2EstimateKey)
+            && PuffinExperiment.spo2CandidateDisplayEnabled
+        var spo2EstimateByDay: [String: Double] = [:]
+        if writeSpo2Estimate {
+            for p in await repo.exploreSeries(key: "spo2_candidate", source: "my-whoop") where (70...100).contains(p.value) {
+                spo2EstimateByDay[p.day] = p.value
+            }
         }
 
         for row in rows {
@@ -1039,6 +1052,12 @@ final class HealthKitBridge: ObservableObject {
             }
             if let spo2 = row.spo2Pct {
                 add(.oxygenSaturation, .percent(), spo2 / 100, row.day, at)
+            } else if let est = spo2EstimateByDay[row.day] {
+                add(.oxygenSaturation, .percent(), est / 100, row.day, at,
+                    extraMetadata: [PuffinExperiment.spo2EstimateMetadataKey: "unverified strap estimate"])
+            } else {
+                // Turned off, or no estimate for the night: clear any estimate an earlier pass wrote.
+                retract(.oxygenSaturation, row.day)
             }
             if let rr = row.respRateBpm {
                 add(.respiratoryRate, HKUnit.count().unitDivided(by: .minute()), rr, row.day, at)

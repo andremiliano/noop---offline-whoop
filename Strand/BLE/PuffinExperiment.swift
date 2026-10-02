@@ -75,6 +75,13 @@ enum PuffinExperiment {
 
     static var spo2CandidateDisplayEnabled: Bool { UserDefaults.standard.bool(forKey: spo2CandidateDisplayKey) }
 
+    /// Opt-in (default OFF): also write the strap's unverified SpO₂ estimate (`spo2_candidate`, produced only
+    /// while the display toggle above is on) to Apple Health as oxygen saturation, so a reader such as Bevel
+    /// can use it. Every written sample carries `spo2EstimateMetadataKey`, so it is identifiable as an
+    /// estimate and never a measurement; it is never written when a calibrated value exists. iOS writer only.
+    static let writeSpo2EstimateKey = "noop.health.writeSpo2Estimate"
+    static let spo2EstimateMetadataKey = "NOOPSpo2Estimate"
+
     /// Opt-in "Personal daytime-stress baseline" (#463): score TODAY's intraday stress timeline against a
     /// PERSONAL cross-day rolling baseline (Oura-style `.baselineRelative`) instead of the day's own calm
     /// hours (`.dayRelative`, the default). Default OFF — the validated r≈0.6 HR-only margin is so far
