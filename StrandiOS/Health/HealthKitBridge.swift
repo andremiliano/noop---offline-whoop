@@ -61,6 +61,10 @@ final class HealthKitBridge: ObservableObject {
     /// The most recent failure surfaced by `sync` / `writeBack`. Cleared on a successful run. UI binds
     /// here so an Apple Health auth revoke, quota hit, or invalid sample is visible instead of silent.
     @Published private(set) var lastError: String?
+    /// What the last heart-rate write did and why, shown on the Apple Health screen. A plain diagnostic
+    /// (not localized): the stream is skipped without any error when permission is missing or the strap
+    /// has no heart rate in the window, which is otherwise indistinguishable from "it worked".
+    @Published private(set) var heartRateWriteStatus: String?
 
     private let store = HKHealthStore()
     private let repo: Repository
@@ -1138,13 +1142,20 @@ final class HealthKitBridge: ObservableObject {
     /// backfills a recent night reconciles. Offloads older than 48 h behind the cursor are missed
     /// until the cursor is cleared — accepted trade-off for not re-walking 14 days every sync.
     private func writeHeartRate(whoopStore: WhoopStore, fromTs: Int, nowTs: Int) async throws {
-        guard let type = HKQuantityType.quantityType(forIdentifier: .heartRate),
-              store.authorizationStatus(for: type) == .sharingAuthorized else { return }
+        guard let type = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return }
+        let hrAuth = store.authorizationStatus(for: type)
+        guard hrAuth == .sharingAuthorized else {
+            heartRateWriteStatus = "Heart rate not written: Health write permission is \(hrAuth == .notDetermined ? "not asked yet" : "off")."
+            return
+        }
         let cursor = UserDefaults.standard.integer(forKey: hrWriteCursorKey)
         let windowStart = cursor > 0 ? max(fromTs, cursor - 48 * 3600) : fromTs
         let buckets = (try? await whoopStore.hrBuckets(deviceId: noopDeviceId, from: windowStart,
                                                        to: nowTs, bucketSeconds: 60)) ?? []
-        guard !buckets.isEmpty else { return }
+        guard !buckets.isEmpty else {
+            heartRateWriteStatus = "Heart rate not written: NOOP has no strap heart rate since \(Date(timeIntervalSince1970: TimeInterval(windowStart)).formatted(date: .abbreviated, time: .shortened))."
+            return
+        }
 
         let pred = NSCompoundPredicate(andPredicateWithSubpredicates: [
             HKQuery.predicateForObjects(from: HKSource.default()),
@@ -1176,10 +1187,15 @@ final class HealthKitBridge: ObservableObject {
             let chunkTs = Array(pendingTs.prefix(5000))
             pending = pending.dropFirst(chunk.count)
             pendingTs = pendingTs.dropFirst(chunk.count)
-            try await store.save(chunk)
+            do { try await store.save(chunk) } catch {
+                heartRateWriteStatus = "Heart rate write failed: \(error.localizedDescription)"
+                throw error
+            }
             lastSaved = max(lastSaved, chunkTs.last ?? lastSaved)
             UserDefaults.standard.set(lastSaved, forKey: hrWriteCursorKey)
         }
+        heartRateWriteStatus = "Heart rate written: \(samples.count) 1-minute samples, newest \(Date(timeIntervalSince1970: TimeInterval(lastSaved)).formatted(date: .abbreviated, time: .shortened))."
+
     }
 
     /// Write strap-detected and manual workouts into Health via `HKWorkoutBuilder`, with an

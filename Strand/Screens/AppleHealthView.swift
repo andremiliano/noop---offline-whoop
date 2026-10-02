@@ -469,6 +469,12 @@ struct AppleHealthView: View {
                     .disabled(health.syncing)
                 }
 
+                if let hr = health.heartRateWriteStatus {
+                    Text(verbatim: hr)
+                        .font(StrandFont.footnote)
+                        .foregroundStyle(StrandPalette.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let err = health.lastError {
                     Text(err)
                         .font(StrandFont.footnote)
