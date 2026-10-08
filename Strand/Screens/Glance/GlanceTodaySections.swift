@@ -249,6 +249,9 @@ struct GlanceHealthMonitor: View {
     /// Last night's time asleep, from the day row the Rest ring reads.
     let sleepMinutes: Double?
     let dayKey: String
+    /// Today's steps as Today's own Steps tile resolves them (imported first), and that tile's metric page.
+    let steps: Double?
+    let stepsRoute: TabRoute
 
     @State private var allReadings: [BodyVitalReading] = []
     /// VO₂ max, the measured value from Apple Health when there is one, else NOOP's own estimate. Nil hides
@@ -296,11 +299,39 @@ struct GlanceHealthMonitor: View {
                 }
                 .buttonStyle(LiquidPressStyle())
             }
+            if let steps, steps > 0 { stepsTile(steps) }
         }
         .task(id: GlanceVitalInputs.reloadKey(repo, units: units)) {
             allReadings = await GlanceVitalInputs.loadReadings(repo, units: units)
             vo2 = await GlanceVO2.load(repo)
         }
+    }
+}
+
+extension GlanceHealthMonitor {
+    /// Today's steps. The status states the wearer's usual day and judges nothing: a day in progress
+    /// compared with finished days would read "lower than usual" until evening.
+    @ViewBuilder fileprivate func stepsTile(_ steps: Double) -> some View {
+        let history = repo.days.filter { $0.day < dayKey }.suffix(14).compactMap { $0.steps }
+            .map(Double.init).filter { $0 > 0 }
+        let usual = history.isEmpty ? nil : UsualRange.percentile(history.sorted(), 0.5)
+        let points = GlanceHistory.points(days: repo.days, through: dayKey) { $0.steps.map(Double.init) }
+        NavigationLink {
+            GlanceTrendDetailPage(series: GlanceTrendSeries(
+                title: String(localized: "Steps"), icon: "figure.walk", tint: StrandPalette.chargeColor,
+                points: points, format: { GlanceVO2.count($0) }, detailsRoute: stepsRoute))
+        } label: {
+            GlanceMonitorTile(icon: "figure.walk", label: String(localized: "Steps"),
+                              value: GlanceVO2.count(steps),
+                              status: usual.map { GlanceStatus(text: String(localized: "Typical day: \(GlanceVO2.count($0))"),
+                                                               icon: "figure.walk", tone: .muted) }
+                                  ?? GlanceStatus(text: String(localized: "Building your range"),
+                                                  icon: "clock.fill", tone: .muted),
+                              gauge: GlanceMonitorTile.gauge(value: steps, values: history,
+                                                             range: UsualRange.band(history)),
+                              tint: StrandPalette.chargeColor)
+        }
+        .buttonStyle(LiquidPressStyle())
     }
 }
 

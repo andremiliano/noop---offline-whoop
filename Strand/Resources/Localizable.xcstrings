@@ -1,6 +1,9 @@
 {
   "sourceLanguage": "en",
   "strings": {
+        "Typical day: %@": { "localizations": {
+          "de": {"stringUnit": {"state": "translated", "value": "Typischer Tag: %@"}}, "es": {"stringUnit": {"state": "translated", "value": "Día típico: %@"}}, "fr": {"stringUnit": {"state": "translated", "value": "Journée type : %@"}}, "it": {"stringUnit": {"state": "translated", "value": "Giorno tipico: %@"}}, "pl": {"stringUnit": {"state": "translated", "value": "Typowy dzień: %@"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Dia típico: %@"}}, "ru": {"stringUnit": {"state": "translated", "value": "Обычный день: %@"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "典型的一天：%@"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "典型的一天：%@"}}
+        } },
         "VO₂ Max (estimate)": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "VO₂max (Schätzung)"}}, "es": {"stringUnit": {"state": "translated", "value": "VO₂ máx. (estimación)"}}, "fr": {"stringUnit": {"state": "translated", "value": "VO₂ max (estimation)"}}, "it": {"stringUnit": {"state": "translated", "value": "VO₂ max (stima)"}}, "pl": {"stringUnit": {"state": "translated", "value": "VO₂ max (szacunek)"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "VO₂ máx. (estimativa)"}}, "ru": {"stringUnit": {"state": "translated", "value": "VO₂ max (оценка)"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "最大摄氧量（估算）"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "最大攝氧量（估算）"}}
         } },

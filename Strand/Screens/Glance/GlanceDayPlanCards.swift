@@ -62,6 +62,41 @@ struct GlanceTonightCard: View {
     }
 }
 
+// MARK: - Sleep consistency
+
+/// How regular the wearer's sleep timing is, under Tonight: the Sleep tab's own figure (imported when
+/// present, else the bedtime-spread score) against their recent values. Opens the Sleep tab.
+struct GlanceSleepConsistencyRow: View {
+    let metric: SleepModel.Metric
+
+    var body: some View {
+        if let latest = metric.latest {
+            let status = GlanceStatus.usual(UsualRange.evaluate(value: latest, history: Array(metric.series.dropLast())))
+            NavigationLink(value: TabRoute.sleep) {
+                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
+                    HStack {
+                        Label(String(localized: "Sleep Consistency"), systemImage: "calendar")
+                            .font(StrandFont.headline)
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Spacer()
+                        Text(verbatim: "\(Int(latest.rounded()))%")
+                            .font(StrandFont.number(22))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        GlanceChevron()
+                    }
+                    GlanceStatusLine(status: status)
+                }
+                .padding(NoopMetrics.cardPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(NoopPanelSurface(cornerRadius: NoopMetrics.cardRadius))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(LiquidPressStyle())
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
+
 // MARK: - Timeline workout row
 
 /// A workout on a timeline, opening that workout's own page — the same read-only detail the Workouts

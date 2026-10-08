@@ -803,10 +803,15 @@ struct LiquidTodayView: View {
                 GlanceEnergyCard(result: glanceEnergy)
             }
             GlanceSectionTitle(title: String(localized: "Health Monitor"))
-            GlanceHealthMonitor(sleepMinutes: displayDay?.totalSleepMin, dayKey: selectedDayKey)
+            GlanceHealthMonitor(sleepMinutes: displayDay?.totalSleepMin, dayKey: selectedDayKey,
+                                steps: stepCount,
+                                stepsRoute: .metricSourced(key: stepsDetailKey, source: stepsDetailSource))
             if let tonight {
                 GlanceSectionTitle(title: String(localized: "Tonight"))
                 GlanceTonightCard(plan: tonight)
+            }
+            if let consistency = hostedSleepModel?.consistency {
+                GlanceSleepConsistencyRow(metric: consistency)
             }
             GlanceChargeLinksCard()
         } else {
