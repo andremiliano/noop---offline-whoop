@@ -32,6 +32,25 @@ struct GlanceVO2 {
 
     static func text(_ v: Double) -> String { String(format: "%.1f ml/kg", locale: AppLanguage.activeLocale, v) }
 
+    /// The five ranges for this age and sex as chart zones plus the note under them, or nil when the
+    /// profile has no male/female sex to read the table by.
+    static func zones(age: Int, sex: String) -> (zones: [GlanceTrendZone], note: String)? {
+        guard let c = Vo2MaxNorms.cutoffs(age: age, sex: sex) else { return nil }
+        let names = [String(localized: "Low"), String(localized: "Fair"), String(localized: "Good"),
+                     String(localized: "Excellent"), String(localized: "Superior")]
+        let edges: [Double?] = [nil, c.fair, c.good, c.excellent, c.superior, nil]
+        let zones = (0..<5).map { GlanceTrendZone(name: names[$0], lower: edges[$0], upper: edges[$0 + 1]) }
+        let band = Vo2MaxNorms.bandLabel(age: age)
+        let note = String(localized: "Ranges for your age (\(band)) and sex, from the Cooper Institute's reference table. Sources differ a little, and a watch or strap estimate reads differently from a lab test, so treat it as a guide.")
+        return (zones, note)
+    }
+
+    /// Where `value` sits for this profile, e.g. "Good", or nil without a usable profile.
+    static func categoryName(_ value: Double, age: Int, sex: String) -> String? {
+        guard let z = zones(age: age, sex: sex)?.zones else { return nil }
+        return z.first { $0.contains(value) }?.name
+    }
+
     @MainActor
     static func load(_ repo: Repository) async -> GlanceVO2? {
         let measured = await repo.series(key: "vo2max", source: "apple-health", days: 400)

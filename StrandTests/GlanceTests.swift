@@ -366,3 +366,32 @@ extension GlanceTests {
         XCTAssertNil(none.asleepBy)
     }
 }
+
+// MARK: - Vo2MaxNorms
+
+extension GlanceTests {
+    func testVo2NormsPickTheAgeAndSexRow() {
+        XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 34, sex: "male"),
+                       Vo2MaxNorms.Cutoffs(fair: 40.5, good: 44.0, excellent: 48.3, superior: 54.0))
+        XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 34, sex: "Female")?.fair, 34.4)
+        // Younger than the table reads against its first row, older against its last.
+        XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 17, sex: "male")?.fair, 41.7)
+        XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 85, sex: "female")?.superior, 36.7)
+        XCTAssertNil(Vo2MaxNorms.cutoffs(age: 34, sex: "nonbinary"))
+        XCTAssertEqual(Vo2MaxNorms.bandLabel(age: 34), "30-39")
+        XCTAssertEqual(Vo2MaxNorms.bandLabel(age: 85), "70-79")
+    }
+
+    /// Each cutoff belongs to the category it opens; one tick below belongs to the one beneath.
+    func testVo2CategoriesChangeAtTheirCutoffs() throws {
+        let c = try XCTUnwrap(Vo2MaxNorms.cutoffs(age: 34, sex: "male"))
+        XCTAssertEqual(Vo2MaxNorms.category(40.4, cutoffs: c), .low)
+        XCTAssertEqual(Vo2MaxNorms.category(40.5, cutoffs: c), .fair)
+        XCTAssertEqual(Vo2MaxNorms.category(44.0, cutoffs: c), .good)
+        XCTAssertEqual(Vo2MaxNorms.category(48.3, cutoffs: c), .excellent)
+        XCTAssertEqual(Vo2MaxNorms.category(54.0, cutoffs: c), .superior)
+        XCTAssertEqual(Vo2MaxNorms.category(53.9, cutoffs: c), .excellent)
+        XCTAssertNil(c.lowerEdge(.low))
+        XCTAssertEqual(c.lowerEdge(.good), 44.0)
+    }
+}

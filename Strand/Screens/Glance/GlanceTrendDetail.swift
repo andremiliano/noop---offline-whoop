@@ -20,6 +20,20 @@ struct GlanceTrendSeries {
     var band: ClosedRange<Double>? = nil
     /// The full technical page, or nil.
     var detailsRoute: TabRoute? = nil
+    /// Reference ranges drawn behind the line and listed under it, lowest first; empty for none.
+    var zones: [GlanceTrendZone] = []
+    /// A line under the zone list saying what the ranges are and how far to trust them.
+    var zoneNote: String? = nil
+}
+
+/// One reference range on a chart: open below for the lowest, open above for the highest.
+struct GlanceTrendZone: Identifiable {
+    let name: String
+    let lower: Double?
+    let upper: Double?
+    var id: String { name }
+
+    func contains(_ v: Double) -> Bool { v >= (lower ?? -.infinity) && v < (upper ?? .infinity) }
 }
 
 /// A trend row's destination: the series' analysis under its own title.
@@ -143,7 +157,8 @@ struct GlanceTrendSections: View {
             }
             .padding(4)
             .background(Capsule().fill(StrandPalette.surfaceInset))
-            if band != nil {
+            if !series.zones.isEmpty { zoneList(latest: rows.last?.value) }
+            if band != nil, series.zones.isEmpty {
                 Label {
                     Text(verbatim: series.band != nil ? String(localized: "Shaded: your normal range")
                          : String(localized: "Shaded: where most of these days fall"))
@@ -158,13 +173,64 @@ struct GlanceTrendSections: View {
         .background(NoopPanelSurface(cornerRadius: NoopMetrics.cardRadius))
     }
 
+    private func zoneList(latest: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(series.zones.enumerated()), id: \.element.id) { i, z in
+                let here = latest.map(z.contains) ?? false
+                HStack(spacing: NoopMetrics.space2) {
+                    RoundedRectangle(cornerRadius: 2).fill(series.tint.opacity(0.18 + 0.12 * Double(i)))
+                        .frame(width: 14, height: 10)
+                    Text(verbatim: z.name)
+                        .font(here ? StrandFont.subhead.weight(.semibold) : StrandFont.subhead)
+                        .foregroundStyle(here ? StrandPalette.textPrimary : StrandPalette.textSecondary)
+                    if here { Text("You are here").font(StrandFont.caption).foregroundStyle(series.tint) }
+                    Spacer()
+                    Text(verbatim: Self.zoneRange(z, format: series.format))
+                        .font(StrandFont.caption)
+                        .foregroundStyle(StrandPalette.textTertiary)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            if let note = series.zoneNote {
+                Text(verbatim: note)
+                    .font(StrandFont.caption)
+                    .foregroundStyle(StrandPalette.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// "≥ 44.0 ml/kg", "below 40.5 ml/kg", or "40.5 – 44.0 ml/kg" in the series' own format.
+    static func zoneRange(_ z: GlanceTrendZone, format: (Double) -> String) -> String {
+        switch (z.lower, z.upper) {
+        case let (l?, u?): return "\(format(l)) – \(format(u))"
+        case let (l?, nil): return "≥ \(format(l))"
+        case let (nil, u?): let top = format(u)
+            return String(localized: "below \(top)")
+        default: return ""
+        }
+    }
+
     private func chart(rows: [Row], band: ClosedRange<Double>?, average: Double?) -> some View {
-        let values = rows.map(\.value) + [band?.lowerBound, band?.upperBound].compactMap { $0 }
+        let zoneEdges = series.zones.flatMap { [$0.lower, $0.upper].compactMap { $0 } }
+        let dataValues = rows.map(\.value) + (series.zones.isEmpty ? [band?.lowerBound, band?.upperBound].compactMap { $0 } : [])
+        // With zones, reach out to the nearest edge above and below the data so its neighbours show.
+        let edgeAbove = zoneEdges.filter { $0 > (dataValues.max() ?? 0) }.min()
+        let edgeBelow = zoneEdges.filter { $0 < (dataValues.min() ?? 0) }.max()
+        let values = dataValues + [edgeAbove, edgeBelow].compactMap { $0 }
         let lo = values.min() ?? 0, hi = values.max() ?? 1
         let pad = max((hi - lo) * 0.12, 1e-6)
         let dense = rows.count > 45
         return Chart {
-            if let band, let first = rows.first?.date, let last = rows.last?.date {
+            if let first = rows.first?.date, let last = rows.last?.date {
+                ForEach(Array(series.zones.enumerated()), id: \.element.id) { i, z in
+                    RectangleMark(xStart: .value("Start", first), xEnd: .value("End", last),
+                                  yStart: .value("Low", max(z.lower ?? (lo - pad), lo - pad)),
+                                  yEnd: .value("High", min(z.upper ?? (hi + pad), hi + pad)))
+                        .foregroundStyle(series.tint.opacity(0.06 + 0.07 * Double(i)))
+                }
+            }
+            if series.zones.isEmpty, let band, let first = rows.first?.date, let last = rows.last?.date {
                 RectangleMark(xStart: .value("Start", first), xEnd: .value("End", last),
                               yStart: .value("Low", band.lowerBound), yEnd: .value("High", band.upperBound))
                     .foregroundStyle(series.tint.opacity(0.18))

@@ -69,6 +69,8 @@ struct GlanceTonightCard: View {
 struct GlanceSleepConsistencyRow: View {
     let metric: SleepModel.Metric
 
+    @State private var explained = false
+
     var body: some View {
         if let latest = metric.latest {
             let status = GlanceStatus.usual(UsualRange.evaluate(value: latest, history: Array(metric.series.dropLast())))
@@ -93,6 +95,20 @@ struct GlanceSleepConsistencyRow: View {
             }
             .buttonStyle(LiquidPressStyle())
             .accessibilityElement(children: .combine)
+            let spread = Int((120 * (1 - latest / 100)).rounded())
+            let score = Int(latest.rounded())
+            DisclosureGroup(isExpanded: $explained) {
+                Text("100% means you go to bed at the same time every night; the lower it is, the more your bedtime moves around. NOOP scores it over your last 14 nights: a spread of about \(spread) minutes either side of your usual bedtime reads as \(score)%, and 2 hours reads as 0%. A WHOOP-imported value is shown as WHOOP gives it. There are no official good or bad bands, so the line above only compares with your own usual.")
+                    .font(StrandFont.caption)
+                    .foregroundStyle(StrandPalette.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } label: {
+                Text("What does this number mean?")
+                    .font(StrandFont.subhead)
+                    .foregroundStyle(StrandPalette.textSecondary)
+            }
+            .tint(StrandPalette.textSecondary)
+            .padding(.horizontal, NoopMetrics.cardPadding)
         }
     }
 }

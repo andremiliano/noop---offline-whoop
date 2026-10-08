@@ -257,6 +257,7 @@ struct GlanceHealthMonitor: View {
     /// VO₂ max, the measured value from Apple Health when there is one, else NOOP's own estimate. Nil hides
     /// the tile: it is a slow fitness figure, not an overnight vital, so it has no "No data" state here.
     @State private var vo2: GlanceVO2?
+    @EnvironmentObject private var profile: ProfileStore
     private let units = GlanceUnitPrefs()
 
     var body: some View {
@@ -283,16 +284,20 @@ struct GlanceHealthMonitor: View {
             }
             .buttonStyle(LiquidPressStyle())
             if let vo2 {
+                let norms = GlanceVO2.zones(age: profile.age, sex: profile.sex)
                 NavigationLink {
                     GlanceTrendDetailPage(series: GlanceTrendSeries(
                         title: vo2.title, icon: "lungs.fill", tint: StrandPalette.chargeColor,
                         points: vo2.points, format: { GlanceVO2.text($0) },
-                        detailsRoute: .metric(vo2.metricKey)))
+                        detailsRoute: .metric(vo2.metricKey),
+                        zones: norms?.zones ?? [], zoneNote: norms?.note))
                 } label: {
                     let trend = GlanceHistory.trend(vo2.points, through: "9999-99-99", value: nil)
                     GlanceMonitorTile(icon: "lungs.fill", label: vo2.title,
                                       value: GlanceVO2.text(vo2.latest),
-                                      status: vo2.status,
+                                      status: GlanceVO2.categoryName(vo2.latest, age: profile.age, sex: profile.sex)
+                                          .map { name in GlanceStatus(text: String(localized: "\(name) for your age"), icon: "lungs.fill", tone: .info) }
+                                          ?? vo2.status,
                                       gauge: GlanceMonitorTile.gauge(value: vo2.latest, values: trend.values,
                                                                      range: vo2.range),
                                       tint: StrandPalette.chargeColor)
