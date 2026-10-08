@@ -282,12 +282,12 @@ struct GlanceHealthMonitor: View {
             if let vo2 {
                 NavigationLink {
                     GlanceTrendDetailPage(series: GlanceTrendSeries(
-                        title: String(localized: "VO₂ Max"), icon: "lungs.fill", tint: StrandPalette.chargeColor,
+                        title: vo2.title, icon: "lungs.fill", tint: StrandPalette.chargeColor,
                         points: vo2.points, format: { GlanceVO2.text($0) },
                         detailsRoute: .metric(vo2.metricKey)))
                 } label: {
                     let trend = GlanceHistory.trend(vo2.points, through: "9999-99-99", value: nil)
-                    GlanceMonitorTile(icon: "lungs.fill", label: String(localized: "VO₂ Max"),
+                    GlanceMonitorTile(icon: "lungs.fill", label: vo2.title,
                                       value: GlanceVO2.text(vo2.latest),
                                       status: vo2.status,
                                       gauge: GlanceMonitorTile.gauge(value: vo2.latest, values: trend.values,

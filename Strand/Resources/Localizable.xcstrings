@@ -1,6 +1,9 @@
 {
   "sourceLanguage": "en",
   "strings": {
+        "VO₂ Max (estimate)": { "localizations": {
+          "de": {"stringUnit": {"state": "translated", "value": "VO₂max (Schätzung)"}}, "es": {"stringUnit": {"state": "translated", "value": "VO₂ máx. (estimación)"}}, "fr": {"stringUnit": {"state": "translated", "value": "VO₂ max (estimation)"}}, "it": {"stringUnit": {"state": "translated", "value": "VO₂ max (stima)"}}, "pl": {"stringUnit": {"state": "translated", "value": "VO₂ max (szacunek)"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "VO₂ máx. (estimativa)"}}, "ru": {"stringUnit": {"state": "translated", "value": "VO₂ max (оценка)"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "最大摄氧量（估算）"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "最大攝氧量（估算）"}}
+        } },
         "Predicted to run out %@ (%@)": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Voraussichtlich leer am %@ (%@)"}}, "es": {"stringUnit": {"state": "translated", "value": "Se agotará previsiblemente el %@ (%@)"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie vide prévue le %@ (%@)"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria prevista scarica il %@ (%@)"}}, "pl": {"stringUnit": {"state": "translated", "value": "Przewidywane rozładowanie: %@ (%@)"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Previsão de ficar sem bateria em %@ (%@)"}}, "ru": {"stringUnit": {"state": "translated", "value": "Прогноз разрядки: %@ (%@)"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "预计电量耗尽时间：%@（%@）"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "預計電量耗盡時間：%@（%@）"}}
         } },
