@@ -21,8 +21,13 @@ struct NOOPLiveActivity: Widget {
                     .font(.title2)
                     .foregroundStyle(StrandPalette.statusCritical)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(context.attributes.title)
-                        .font(.caption).foregroundStyle(StrandPalette.textSecondary)
+                    if let sport = context.state.workoutSport, let start = context.state.workoutStart {
+                        // A workout started in the app: its name and a clock that counts up on its own.
+                        workoutLine(sport: sport, start: start, paused: context.state.workoutPaused)
+                    } else {
+                        Text(context.attributes.title)
+                            .font(.caption).foregroundStyle(StrandPalette.textSecondary)
+                    }
                     Text("\(Self.shownBpm(context).map(String.init) ?? "–") bpm")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(StrandPalette.textPrimary)
@@ -33,7 +38,8 @@ struct NOOPLiveActivity: Widget {
                     if let r = context.state.recovery {
                         bannerStat(label: "Charge", value: "\(r)%")
                     }
-                    if let e = context.state.effort {
+                    // In a workout the Effort shown is the session's own; the day's otherwise.
+                    if let e = context.state.workoutEffort ?? context.state.effort {
                         bannerStat(label: "Effort", value: "\(e)")
                     }
                 }
@@ -53,23 +59,50 @@ struct NOOPLiveActivity: Widget {
                         if let r = context.state.recovery {
                             statColumn(label: "Charge", value: "\(r)%")
                         }
-                        if let e = context.state.effort {
+                        if let e = context.state.workoutEffort ?? context.state.effort {
                             statColumn(label: "Effort", value: "\(e)")
                         }
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(context.attributes.title).font(.caption).foregroundStyle(.secondary)
+                    if let sport = context.state.workoutSport, let start = context.state.workoutStart {
+                        workoutLine(sport: sport, start: start, paused: context.state.workoutPaused)
+                    } else {
+                        Text(context.attributes.title).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
             } compactLeading: {
                 Image(systemName: "heart.fill").foregroundStyle(StrandPalette.statusCritical)
             } compactTrailing: {
-                Text("\(Self.shownBpm(context).map(String.init) ?? "–")")
+                // In a workout the compact island counts its time; the heart rate is on the expanded view.
+                if let start = context.state.workoutStart, !context.state.workoutPaused {
+                    Text(start, style: .timer)
+                        .monospacedDigit()
+                        .frame(maxWidth: 52)
+                } else {
+                    Text("\(Self.shownBpm(context).map(String.init) ?? "–")")
+                }
             } minimal: {
                 Image(systemName: "heart.fill").foregroundStyle(StrandPalette.statusCritical)
             }
         }
     }
+}
+
+/// A workout's name beside its running clock, or a pause mark in place of the clock while it is paused.
+/// File-scope for the same reason as `bannerStat`.
+@ViewBuilder
+private func workoutLine(sport: String, start: Date, paused: Bool) -> some View {
+    HStack(spacing: 6) {
+        Image(systemName: "figure.run").font(.caption)
+        Text(verbatim: sport).font(.caption.weight(.semibold))
+        if paused {
+            Image(systemName: "pause.fill").font(.caption2)
+        } else {
+            Text(start, style: .timer).font(.caption.monospacedDigit())
+        }
+    }
+    .foregroundStyle(StrandPalette.textSecondary)
 }
 
 /// Lock-Screen banner stat column (label over value). File-scope because the `ActivityConfiguration`

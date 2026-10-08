@@ -57,7 +57,11 @@ final class LiveActivityController {
         // nothing, so the banner kept the last number until iOS's stale date drew the dash.
         LiveHRBannerInputs.settled([model.live.$heartRate.map { _ in () }.eraseToAnyPublisher(),
                                     model.live.$connected.map { _ in () }.eraseToAnyPublisher(),
-                                    model.$bpm.map { _ in () }.eraseToAnyPublisher()])
+                                    model.$bpm.map { _ in () }.eraseToAnyPublisher(),
+                                    // A workout started or ended in the app is shown at once, not at the next tick.
+                                    model.$activeWorkout.map { $0.map { [$0.start, $0.pausedAt] } }
+                                        .removeDuplicates { $0?.map { $0?.timeIntervalSince1970 } == $1?.map { $0?.timeIntervalSince1970 } }
+                                        .map { _ in () }.eraseToAnyPublisher()])
             .sink { [weak self] in self?.refreshBanner() }
             .store(in: &cancellables)
         // The switch is the one way to be rid of the banner, so it acts at once — not at the next heart-rate tick,
@@ -86,10 +90,13 @@ final class LiveActivityController {
         guard let model else { return }
         let connected = model.live.connected
         let day = model.repo.cachedWidgetAnchor()
+        let workout = model.activeWorkout
         update(bpm: connected ? (model.bpm ?? model.live.heartRate) : nil,
                recovery: day?.recovery.map { Int($0.rounded()) }, connected: connected, standsAside: standsAside(),
                appActive: appActive ?? (UIApplication.shared.applicationState == .active),
-               effort: day?.strain.map { Int($0.rounded()) })
+               effort: day?.strain.map { Int($0.rounded()) },
+               workout: workout.map { (sport: $0.sport, start: $0.start, paused: $0.pausedAt != nil,
+                                       effort: Int($0.liveStrain.rounded())) })
     }
 
     /// Drive the activity from the latest live values (`LiveHRBannerLifecycle` decides start / push / end). Starts
@@ -99,7 +106,7 @@ final class LiveActivityController {
     /// (`standsAside`). Pushed when what it shows changes, and often enough to stay fresh (`LiveHRBannerPushPolicy`,
     /// `staleAfter`).
     private func update(bpm: Int?, recovery: Int?, connected: Bool, standsAside: Bool, appActive: Bool,
-                        effort: Int?) {
+                        effort: Int?, workout: (sport: String, start: Date, paused: Bool, effort: Int)? = nil) {
         guard authInfo.areActivitiesEnabled else { return }
 
         // A banner iOS ended (after about eight hours) or the user swiped away is gone: forget it, so the next time
@@ -151,7 +158,10 @@ final class LiveActivityController {
         // left a fabricated "live" HR standing). No timed end: a timer in a suspended app fires at its next wake,
         // which is typically the strap coming back — exactly when the banner should stay.
         let state = NOOPActivityAttributes.ContentState(bpm: connected ? bpm : nil, recovery: recovery,
-                                                        bonded: connected, effort: effort)
+                                                        bonded: connected, effort: effort,
+                                                        workoutSport: workout?.sport, workoutStart: workout?.start,
+                                                        workoutPaused: workout?.paused ?? false,
+                                                        workoutEffort: workout?.effort)
 
         if step == .renew, activity != nil {
             // The fresh banner first, then the old one goes, so the Lock Screen is never without one; if iOS refuses
@@ -164,9 +174,15 @@ final class LiveActivityController {
         } else if let activity {
             // The number giving way to the dash (the strap off the wrist, the link dropping) is pushed at once: no
             // tick follows it, so a push skipped for spacing would leave the last number standing.
-            guard LiveHRBannerPushPolicy.due(shown: shownState, next: state, reading: \.bpm,
-                                             sinceLastPush: now.timeIntervalSince(lastPush),
-                                             staleAfter: Self.staleAfter) else { return }
+            // A workout starting, ending, pausing or changing sport is pushed at once, like the number giving
+            // way to the dash: nothing about the reading says it happened.
+            let workoutChanged = shownState.map {
+                $0.workoutStart != state.workoutStart || $0.workoutSport != state.workoutSport
+                    || $0.workoutPaused != state.workoutPaused
+            } ?? false
+            guard workoutChanged || LiveHRBannerPushPolicy.due(shown: shownState, next: state, reading: \.bpm,
+                                                               sinceLastPush: now.timeIntervalSince(lastPush),
+                                                               staleAfter: Self.staleAfter) else { return }
             if let shown = shownState, (shown.bpm == nil) != (state.bpm == nil) { logReading(state) }
             lastPush = now
             shownState = state

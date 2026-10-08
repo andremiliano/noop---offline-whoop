@@ -1316,11 +1316,10 @@ final class HealthKitBridge: ObservableObject {
                                                          limit: Self.workoutReadLimit)
         let mine = mineRead ?? []
         let computed = computedRead ?? []
-        var byKey: [String: WorkoutRow] = [:]
-        for w in computed + mine where w.source != HealthKitBridge.appleWorkoutSource {
-            byKey["\(w.startTs):\(w.sport)"] = w
-        }
-        let rows = byKey.values.sorted { $0.startTs < $1.startTs }
+        // One Health workout per START time: its key carries no sport, so rows that differ only in sport
+        // would otherwise share a key and all be saved (see `WorkoutWritebackSelection`).
+        let rows = WorkoutWritebackSelection.onePerStart(
+            (computed + mine).filter { $0.source != HealthKitBridge.appleWorkoutSource })
 
         func key(_ row: WorkoutRow) -> String { HealthWriteback.appleHealthWorkoutKey(startTs: row.startTs) }
 

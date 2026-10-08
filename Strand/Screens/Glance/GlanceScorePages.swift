@@ -359,9 +359,12 @@ struct GlanceChargePage: View {
     private var tint: Color { charge.map { StrandPalette.recoveryColor($0) } ?? StrandPalette.chargeColor }
 
     @ViewBuilder private var breakdown: some View {
-        let result = breakdownRow.flatMap {
-            ChargeBreakdownWiring.breakdown(days: repo.days, row: $0, sleepPerfPercent: restScore,
-                                            hrvBaselineEpoch: Baselines.hrvBaselineEpoch())
+        // The baselines the ring's own number used, resolved once per refresh (`repo.chargeBaselines`, #2525),
+        // so a row can never describe a term the ring did not use.
+        let result = breakdownRow.flatMap { row in
+            repo.chargeBaselines.flatMap {
+                ChargeBreakdownWiring.breakdown(baselines: $0, row: row, sleepPerfPercent: restScore)
+            }
         }
         if let result, !result.drivers.isEmpty {
             // No section title: the breakdown carries its own "What shaped it" header.
