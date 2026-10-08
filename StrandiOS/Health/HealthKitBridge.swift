@@ -65,6 +65,8 @@ final class HealthKitBridge: ObservableObject {
     /// (not localized): the stream is skipped without any error when permission is missing or the strap
     /// has no heart rate in the window, which is otherwise indistinguishable from "it worked".
     @Published private(set) var heartRateWriteStatus: String?
+    /// What the last workout write-back did, so a duplicate report can be told apart from stale copies.
+    @Published private(set) var workoutWriteStatus: String?
 
 
     private let store = HKHealthStore()
@@ -1340,6 +1342,7 @@ final class HealthKitBridge: ObservableObject {
             let stale = existing.filter { !kept.contains($0.uuid) }
             if !stale.isEmpty { _ = try? await store.delete(stale) }
         }
+        workoutWriteStatus = "Workouts: \(rows.count) in NOOP, \(existing.count) already in Health, \(toWrite.count) written, \(existing.filter { !kept.contains($0.uuid) }.count) stale copies removed."
         guard !toWrite.isEmpty else { return }
 
         for row in toWrite {

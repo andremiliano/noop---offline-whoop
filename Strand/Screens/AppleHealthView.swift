@@ -475,6 +475,12 @@ struct AppleHealthView: View {
                         .foregroundStyle(StrandPalette.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if let w = health.workoutWriteStatus {
+                    Text(verbatim: w)
+                        .font(StrandFont.footnote)
+                        .foregroundStyle(StrandPalette.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let err = health.lastError {
                     Text(err)
                         .font(StrandFont.footnote)
