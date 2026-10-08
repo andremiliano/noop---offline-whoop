@@ -1270,7 +1270,8 @@ final class HealthKitBridge: ObservableObject {
     /// does not let an app ask whether it may read. With write granted and read withheld the query
     /// returns nothing rather than failing, so reconciliation quietly does nothing and the duplicates
     /// stay. That fails safe, but it fails silent.
-    private func deleteOrphanedWorkouts(fromTs: Int, toTs: Int, keeping: Set<String>) async {
+    /// Every workout this app wrote in the window, whatever its key.
+    private func ownWorkouts(fromTs: Int, toTs: Int) async -> [HKWorkout] {
         let pred = NSCompoundPredicate(andPredicateWithSubpredicates: [
             HKQuery.predicateForObjects(from: HKSource.default()),
             // `.strictStartDate`, and it is load-bearing. A workout is an INTERVAL, and the default
@@ -1287,21 +1288,13 @@ final class HealthKitBridge: ObservableObject {
                                         end: Date(timeIntervalSince1970: TimeInterval(toTs)),
                                         options: [.strictStartDate]),
         ])
-        let orphans: [HKWorkout] = await withCheckedContinuation { (cont: CheckedContinuation<[HKWorkout], Never>) in
+        return await withCheckedContinuation { (cont: CheckedContinuation<[HKWorkout], Never>) in
             let q = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: pred,
                                   limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
-                var out: [HKWorkout] = []
-                for case let workout as HKWorkout in samples ?? [] {
-                    guard let uuid = workout.metadata?[HKMetadataKeyExternalUUID] as? String,
-                          uuid.hasPrefix(HealthWriteback.appleHealthWorkoutKeyPrefix) else { continue }
-                    if !keeping.contains(uuid) { out.append(workout) }
-                }
-                cont.resume(returning: out)
+                cont.resume(returning: (samples ?? []).compactMap { $0 as? HKWorkout })
             }
             store.execute(q)
         }
-        guard !orphans.isEmpty else { return }
-        _ = try? await store.delete(orphans)
     }
 
     private func writeWorkouts(whoopStore: WhoopStore, fromTs: Int, toTs: Int) async throws {
@@ -1323,32 +1316,33 @@ final class HealthKitBridge: ObservableObject {
 
         func key(_ row: WorkoutRow) -> String { HealthWriteback.appleHealthWorkoutKey(startTs: row.startTs) }
 
-        // #2210: remove workouts we wrote that the store no longer holds. The delete below only ever
-        // names the keys it is about to rewrite, so a row that LEFT the store keeps its Health copy for
-        // good: a detected bout dropped for overlapping an Apple workout, a bout whose startTs drifted
-        // and was rewritten under a new key, or a workout deleted, dismissed or merged in the app.
+        // A Health workout is only ever written ONCE. Rewriting an unchanged one gives it a new object id,
+        // and apps reading Health (Bevel) take every new object for a new activity, so each sync would add
+        // the same workout again. So: keep one existing copy per row that still matches it, delete what
+        // matches nothing (a workout that left the store, drifted, or is a duplicate: #2210), write the rest.
         //
-        // Deliberately NOT a range delete. This reads the window back, keeps only what carries our own
-        // key, and deletes the ones absent from `rows`, so nothing is removed that was not first
-        // observed and identified as ours. A blind range delete would also have to trust that the store
-        // read returned everything, and the two guards below are exactly the cases where it did not.
-        //
-        // Runs BEFORE the empty-rows return: a window whose last workout was deleted in the app is the
-        // case where every Health copy is an orphan, and returning early would leave all of them.
+        // Deletes need a trustworthy store read (a failed or truncated read looks like "nothing here"),
+        // and only ever touch objects from our own source in this window.
+        let existing = await ownWorkouts(fromTs: fromTs, toTs: toTs)
+        var kept = Set<UUID>()
+        var toWrite: [WorkoutRow] = []
+        for row in rows {
+            let match = existing.first { w in
+                !kept.contains(w.uuid)
+                    && (w.metadata?[HKMetadataKeyExternalUUID] as? String) == key(row)
+                    && abs(w.startDate.timeIntervalSince1970 - Double(row.startTs)) < 1
+                    && abs(w.endDate.timeIntervalSince1970 - Double(row.endTs)) < 1
+            }
+            if let match { kept.insert(match.uuid) } else { toWrite.append(row) }
+        }
         if mineRead != nil, computedRead != nil,
            mine.count < Self.workoutReadLimit, computed.count < Self.workoutReadLimit {
-            await deleteOrphanedWorkouts(fromTs: fromTs, toTs: toTs, keeping: Set(rows.map(key)))
+            let stale = existing.filter { !kept.contains($0.uuid) }
+            if !stale.isEmpty { _ = try? await store.delete(stale) }
         }
+        guard !toWrite.isEmpty else { return }
 
-        guard !rows.isEmpty else { return }
-        let pred = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            HKQuery.predicateForObjects(from: HKSource.default()),
-            HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeyExternalUUID,
-                                        allowedValues: rows.map(key)),
-        ])
-        _ = try? await store.deleteObjects(of: .workoutType(), predicate: pred)
-
-        for row in rows {
+        for row in toWrite {
             let start = Date(timeIntervalSince1970: TimeInterval(row.startTs))
             let end = Date(timeIntervalSince1970: TimeInterval(row.endTs))
             guard end > start else { continue }
