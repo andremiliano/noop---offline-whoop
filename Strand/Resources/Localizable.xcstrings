@@ -520,6 +520,15 @@
         "What to turn on for the data you want, for WHOOP 4.0 and 5.0 / MG.": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Was du für die gewünschten Daten einschalten musst – für WHOOP 4.0 und 5.0 / MG."}}, "es": {"stringUnit": {"state": "translated", "value": "Qué activar para ver los datos que quieres, para WHOOP 4.0 y 5.0 / MG."}}, "fr": {"stringUnit": {"state": "translated", "value": "Ce qu'il faut activer pour les données voulues, pour WHOOP 4.0 et 5.0 / MG."}}, "it": {"stringUnit": {"state": "translated", "value": "Cosa attivare per i dati che vuoi, per WHOOP 4.0 e 5.0 / MG."}}, "pl": {"stringUnit": {"state": "translated", "value": "Co włączyć, aby widzieć potrzebne dane, dla WHOOP 4.0 i 5.0 / MG."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "O que ativar para os dados que quer, para WHOOP 4.0 e 5.0 / MG."}}, "ru": {"stringUnit": {"state": "translated", "value": "Что включить, чтобы видеть нужные данные, для WHOOP 4.0 и 5.0 / MG."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "针对 WHOOP 4.0 和 5.0 / MG，为获取所需数据应开启哪些功能。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "針對 WHOOP 4.0 和 5.0 / MG，為取得所需資料應開啟哪些功能。"}}
         } },
+    "Move, relative to tonight": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Move, relative to tonight"}}, "de": {"stringUnit": {"state": "translated", "value": "Bewegung, relativ zu dieser Nacht"}}, "es": {"stringUnit": {"state": "translated", "value": "Movimiento, en relación con esta noche"}}, "fr": {"stringUnit": {"state": "translated", "value": "Mouvement, par rapport à cette nuit"}}, "it": {"stringUnit": {"state": "translated", "value": "Movimento, rispetto a questa notte"}}, "pl": {"stringUnit": {"state": "translated", "value": "Ruch, w odniesieniu do tej nocy"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Movimento, em relação a esta noite"}}, "ru": {"stringUnit": {"state": "translated", "value": "Движение, относительно этой ночи"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "活动，相对于今晚"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "活動，相對於今晚"}}}},
+    "Route and GPS distance, without the heart-rate and calorie summary": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Route and GPS distance, without the heart-rate and calorie summary"}}, "de": {"stringUnit": {"state": "translated", "value": "Route und GPS-Distanz, ohne die Herzfrequenz- und Kalorienübersicht"}}, "es": {"stringUnit": {"state": "translated", "value": "Ruta y distancia GPS, sin el resumen de frecuencia cardiaca y calorías"}}, "fr": {"stringUnit": {"state": "translated", "value": "Itinéraire et distance GPS, sans le récapitulatif de fréquence cardiaque et de calories"}}, "it": {"stringUnit": {"state": "translated", "value": "Percorso e distanza GPS, senza il riepilogo di frequenza cardiaca e calorie"}}, "pl": {"stringUnit": {"state": "translated", "value": "Trasa i dystans GPS, bez podsumowania tętna i kalorii"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Rota e distância GPS, sem o resumo de frequência cardíaca e calorias"}}, "ru": {"stringUnit": {"state": "translated", "value": "Маршрут и GPS-дистанция, без сводки пульса и калорий"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "路线和 GPS 距离，不含心率和卡路里摘要"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "路線和 GPS 距離，不含心率和卡路里摘要"}}}},
+    "Export Workout Route": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Export Workout Route"}}, "de": {"stringUnit": {"state": "translated", "value": "Trainingsroute exportieren"}}, "es": {"stringUnit": {"state": "translated", "value": "Exportar ruta del entrenamiento"}}, "fr": {"stringUnit": {"state": "translated", "value": "Exporter l’itinéraire de la séance"}}, "it": {"stringUnit": {"state": "translated", "value": "Esporta il percorso dell’allenamento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Eksportuj trasę treningu"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Exportar rota do treino"}}, "ru": {"stringUnit": {"state": "translated", "value": "Экспортировать маршрут тренировки"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "导出运动路线"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯出運動路線"}}}},
+    "Route Format": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Route Format"}}, "de": {"stringUnit": {"state": "translated", "value": "Routenformat"}}, "es": {"stringUnit": {"state": "translated", "value": "Formato de ruta"}}, "fr": {"stringUnit": {"state": "translated", "value": "Format d’itinéraire"}}, "it": {"stringUnit": {"state": "translated", "value": "Formato del percorso"}}, "pl": {"stringUnit": {"state": "translated", "value": "Format trasy"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Formato da rota"}}, "ru": {"stringUnit": {"state": "translated", "value": "Формат маршрута"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "路线格式"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "路線格式"}}}},
+    "Get the most recent recorded GPS route as a GPX or FIT file, ready to hand to Strava, Garmin Connect, or any other app.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Get the most recent recorded GPS route as a GPX or FIT file, ready to hand to Strava, Garmin Connect, or any other app."}}, "de": {"stringUnit": {"state": "translated", "value": "Die zuletzt aufgezeichnete GPS-Route als GPX- oder FIT-Datei abrufen, bereit für Strava, Garmin Connect oder jede andere App."}}, "es": {"stringUnit": {"state": "translated", "value": "Obtén la última ruta GPS grabada como archivo GPX o FIT, lista para enviar a Strava, Garmin Connect o cualquier otra app."}}, "fr": {"stringUnit": {"state": "translated", "value": "Récupérez le dernier itinéraire GPS enregistré au format GPX ou FIT, prêt à envoyer vers Strava, Garmin Connect ou toute autre app."}}, "it": {"stringUnit": {"state": "translated", "value": "Ottieni l’ultimo percorso GPS registrato come file GPX o FIT, pronto da inviare a Strava, Garmin Connect o qualsiasi altra app."}}, "pl": {"stringUnit": {"state": "translated", "value": "Pobierz ostatnio zapisaną trasę GPS jako plik GPX lub FIT, gotowy do przekazania do Stravy, Garmin Connect lub dowolnej innej aplikacji."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Obtenha a rota GPS mais recente como ficheiro GPX ou FIT, pronta a enviar para o Strava, o Garmin Connect ou qualquer outra app."}}, "ru": {"stringUnit": {"state": "translated", "value": "Получите последний записанный GPS-маршрут в виде файла GPX или FIT, готового для передачи в Strava, Garmin Connect или любое другое приложение."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "将最近记录的 GPS 路线导出为 GPX 或 FIT 文件，可直接发送到 Strava、Garmin Connect 或其他应用。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "將最近記錄的 GPS 路線匯出為 GPX 或 FIT 檔案，可直接傳送到 Strava、Garmin Connect 或其他應用程式。"}}}},
+    "NOOP has no recorded route with GPS measurements to export yet.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "NOOP has no recorded route with GPS measurements to export yet."}}, "de": {"stringUnit": {"state": "translated", "value": "NOOP hat noch keine aufgezeichnete Route mit GPS-Messwerten zum Exportieren."}}, "es": {"stringUnit": {"state": "translated", "value": "NOOP aún no tiene ninguna ruta grabada con mediciones GPS para exportar."}}, "fr": {"stringUnit": {"state": "translated", "value": "NOOP n’a pas encore d’itinéraire enregistré avec des mesures GPS à exporter."}}, "it": {"stringUnit": {"state": "translated", "value": "NOOP non ha ancora un percorso registrato con misurazioni GPS da esportare."}}, "pl": {"stringUnit": {"state": "translated", "value": "NOOP nie ma jeszcze zapisanej trasy z pomiarami GPS do wyeksportowania."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "O NOOP ainda não tem nenhuma rota gravada com medições GPS para exportar."}}, "ru": {"stringUnit": {"state": "translated", "value": "В NOOP пока нет записанного маршрута с GPS-измерениями для экспорта."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "NOOP 目前还没有包含 GPS 测量数据的已记录路线可供导出。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "NOOP 目前還沒有包含 GPS 測量數據的已記錄路線可供匯出。"}}}},
+    "Exported your most recent route.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Exported your most recent route."}}, "de": {"stringUnit": {"state": "translated", "value": "Deine zuletzt aufgezeichnete Route wurde exportiert."}}, "es": {"stringUnit": {"state": "translated", "value": "Se ha exportado tu ruta más reciente."}}, "fr": {"stringUnit": {"state": "translated", "value": "Votre itinéraire le plus récent a été exporté."}}, "it": {"stringUnit": {"state": "translated", "value": "Il tuo percorso più recente è stato esportato."}}, "pl": {"stringUnit": {"state": "translated", "value": "Twoja ostatnia trasa została wyeksportowana."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "A sua rota mais recente foi exportada."}}, "ru": {"stringUnit": {"state": "translated", "value": "Ваш последний маршрут экспортирован."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "已导出你最近的路线。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "已匯出你最近的路線。"}}}},
+    "Skips sessions that overlap a saved or imported workout, including workouts from Apple Health.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Skips sessions that overlap a saved or imported workout, including workouts from Apple Health."}}, "de": {"stringUnit": {"state": "translated", "value": "Überspringt Einheiten, die sich mit einem gespeicherten oder importierten Training überschneiden, auch mit Trainings aus Apple Health."}}, "es": {"stringUnit": {"state": "translated", "value": "Omite las sesiones que se solapan con un entrenamiento guardado o importado, incluidos los de Apple Health."}}, "fr": {"stringUnit": {"state": "translated", "value": "Ignore les séances qui chevauchent un entraînement enregistré ou importé, y compris ceux provenant d’Apple Health."}}, "it": {"stringUnit": {"state": "translated", "value": "Ignora le sessioni che si sovrappongono a un allenamento salvato o importato, inclusi quelli di Apple Health."}}, "pl": {"stringUnit": {"state": "translated", "value": "Pomija sesje nakładające się na zapisany lub zaimportowany trening, w tym treningi z Apple Health."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Ignora sessões que se sobrepõem a um treino guardado ou importado, incluindo treinos do Apple Health."}}, "ru": {"stringUnit": {"state": "translated", "value": "Пропускает занятия, которые пересекаются с сохранённой или импортированной тренировкой, включая тренировки из Apple Health."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "跳过与已保存或导入的训练时间重叠的活动，包括来自 Apple Health 的训练。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "略過與已儲存或匯入的訓練時間重疊的活動，包括來自 Apple Health 的訓練。"}}}},
+    "Requires Live Sessions to be enabled in Settings.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Requires Live Sessions to be enabled in Settings."}}, "de": {"stringUnit": {"state": "translated", "value": "Erfordert aktivierte Live Sessions in den Einstellungen."}}, "es": {"stringUnit": {"state": "translated", "value": "Requiere activar Live Sessions en Ajustes."}}, "fr": {"stringUnit": {"state": "translated", "value": "Nécessite d’activer les sessions en direct dans Réglages."}}, "it": {"stringUnit": {"state": "translated", "value": "Richiede l’attivazione delle sessioni in diretta nelle Impostazioni."}}, "pl": {"stringUnit": {"state": "translated", "value": "Wymaga włączenia sesji na żywo w Ustawieniach."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Requer que as sessões em direto estejam ativadas nas Definições."}}, "ru": {"stringUnit": {"state": "translated", "value": "Требует включения сессий в реальном времени в Настройках."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "需要在设置中启用 Live Sessions 实时记录。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "需要在設定中啟用 Live Sessions 即時記錄。"}}}},
 "Sleep result updated": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Sleep result updated"}}, "de": {"stringUnit": {"state": "translated", "value": "Schlafergebnis aktualisiert"}}, "es": {"stringUnit": {"state": "translated", "value": "Resultado del sueño actualizado"}}, "fr": {"stringUnit": {"state": "translated", "value": "Résultat du sommeil mis à jour"}}, "it": {"stringUnit": {"state": "translated", "value": "Risultato del sonno aggiornato"}}, "pl": {"stringUnit": {"state": "translated", "value": "Zaktualizowano wynik snu"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Resultado do sono atualizado"}}, "ru": {"stringUnit": {"state": "translated", "value": "Результат сна обновлён"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "睡眠结果已更新"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "睡眠結果已更新"}}}},
 "This night's sleep times or total asleep changed by at least five minutes.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "This night's sleep times or total asleep changed by at least five minutes."}}, "de": {"stringUnit": {"state": "translated", "value": "Die Schlafzeiten oder die Gesamtschlafdauer dieser Nacht haben sich um mindestens fünf Minuten geändert."}}, "es": {"stringUnit": {"state": "translated", "value": "Las horas de sueño o el tiempo total dormido de esta noche cambiaron al menos cinco minutos."}}, "fr": {"stringUnit": {"state": "translated", "value": "Les horaires de sommeil ou la durée totale de sommeil de cette nuit ont changé d’au moins cinq minutes."}}, "it": {"stringUnit": {"state": "translated", "value": "Gli orari del sonno o il tempo totale dormito di questa notte sono cambiati di almeno cinque minuti."}}, "pl": {"stringUnit": {"state": "translated", "value": "Godziny snu lub łączny czas snu tej nocy zmieniły się o co najmniej pięć minut."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Os horários de sono ou o tempo total de sono desta noite mudaram pelo menos cinco minutos."}}, "ru": {"stringUnit": {"state": "translated", "value": "Время засыпания, пробуждения или общая продолжительность сна этой ночи изменились как минимум на пять минут."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "这晚的入睡时间、醒来时间或总睡眠时长变化了至少五分钟。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "這晚的入睡時間、醒來時間或總睡眠時長變化了至少五分鐘。"}}}},
 
@@ -568,10 +577,10 @@
         "zh-Hant": {"stringUnit": {"state": "translated", "value": "你的 Oura 戒指只有在 NOOP 讓它保持該模式時才會測量白天心率，而螢幕關閉五分鐘後 NOOP 就會停止請求——這在夜間保護了戒指自身的睡眠追蹤，但也會讓手機放在口袋裡的白天在心率和 HRV 圖表上一片空白。開啟後，NOOP 全天持續請求，僅在你從睡眠紀錄中學到的慣常夜間停止（從通常就寢前一小時到通常醒來後一小時），因此夜間不受影響。會消耗戒指電量：戒指的光學感測器全天運作。在學到足夠的夜晚之前，其行為與關閉時相同。預設關閉。"}}
     } },
         "Ring battery %lld percent": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Ring-Akku %lld Prozent"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería del anillo %lld por ciento"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie de la bague %lld pour cent"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria dell'anello %lld percento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria pierścienia %lld procent"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria do anel %lld por cento"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процентов"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "戒指电量百分之 %lld"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "戒指電量百分之 %lld"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Ring-Akku %lld Prozent"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería del anillo %lld por ciento"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie de la bague %lld pour cent"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria dell'anello %lld percento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria pierścienia %lld procent"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria do anel %lld por cento"}}, "ru": {"variations": {"plural": {"one": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процент"}}, "few": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процента"}}, "many": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процентов"}}, "other": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процента"}}}}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "戒指电量百分之 %lld"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "戒指電量百分之 %lld"}}
         } },
         "Ring battery %lld percent, charging": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Ring-Akku %lld Prozent, wird geladen"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería del anillo %lld por ciento, cargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie de la bague %lld pour cent, en charge"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria dell'anello %lld percento, in carica"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria pierścienia %lld procent, ładowanie"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria do anel %lld por cento, a carregar"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процентов, заряжается"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "戒指电量百分之 %lld，正在充电"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "戒指電量百分之 %lld，正在充電"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Ring-Akku %lld Prozent, wird geladen"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería del anillo %lld por ciento, cargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie de la bague %lld pour cent, en charge"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria dell'anello %lld percento, in carica"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria pierścienia %lld procent, ładowanie"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria do anel %lld por cento, a carregar"}}, "ru": {"variations": {"plural": {"one": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процент, заряжается"}}, "few": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процента, заряжается"}}, "many": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процентов, заряжается"}}, "other": {"stringUnit": {"state": "translated", "value": "Заряд кольца %lld процента, заряжается"}}}}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "戒指电量百分之 %lld，正在充电"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "戒指電量百分之 %lld，正在充電"}}
         } },
         "Oura notification mask ff (experimental)": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Oura-Benachrichtigungsmaske ff (experimentell)"}}, "es": {"stringUnit": {"state": "translated", "value": "Máscara de notificación Oura ff (experimental)"}}, "fr": {"stringUnit": {"state": "translated", "value": "Masque de notification Oura ff (expérimental)"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Máscara de notificação Oura ff (experimental)"}}, "it": {"stringUnit": {"state": "translated", "value": "Maschera di notifica Oura ff (sperimentale)"}}, "pl": {"stringUnit": {"state": "translated", "value": "Maska powiadomień Oura ff (eksperymentalne)"}}, "ru": {"stringUnit": {"state": "translated", "value": "Маска уведомлений Oura ff (экспериментально)"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "Oura 通知掩码 ff（实验性）"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "Oura 通知遮罩 ff（實驗性）"}}
@@ -622,10 +631,10 @@
           "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku, Strap nicht verbunden"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda, banda no conectada"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet, bracelet non connecté"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia, fascia non connessa"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski, opaska niepołączona"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira, pulseira não ligada"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд ремешка, ремешок не подключён"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量，手环未连接"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量，手環未連線"}}
         } },
         "Strap battery %lld percent": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процентов"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento"}}, "ru": {"variations": {"plural": {"one": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процент"}}, "few": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процента"}}, "many": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процентов"}}, "other": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процента"}}}}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld"}}
         } },
         "Strap battery %lld percent, charging": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent, wird geladen"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento, cargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent, en charge"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento, in carica"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent, ładowanie"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento, a carregar"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процентов, заряжается"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld，正在充电"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld，正在充電"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent, wird geladen"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento, cargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent, en charge"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento, in carica"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent, ładowanie"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento, a carregar"}}, "ru": {"variations": {"plural": {"one": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процент, заряжается"}}, "few": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процента, заряжается"}}, "many": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процентов, заряжается"}}, "other": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процента, заряжается"}}}}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld，正在充电"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld，正在充電"}}
         } },
         "Syncing strap history, chunk %lld": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Strap-Verlauf wird synchronisiert, Block %lld"}}, "es": {"stringUnit": {"state": "translated", "value": "Sincronizando historial de la banda, bloque %lld"}}, "fr": {"stringUnit": {"state": "translated", "value": "Synchronisation de l'historique du bracelet, bloc %lld"}}, "it": {"stringUnit": {"state": "translated", "value": "Sincronizzazione della cronologia della fascia, blocco %lld"}}, "pl": {"stringUnit": {"state": "translated", "value": "Synchronizacja historii opaski, fragment %lld"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "A sincronizar o histórico da pulseira, bloco %lld"}}, "ru": {"stringUnit": {"state": "translated", "value": "Синхронизация истории ремешка, фрагмент %lld"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在同步手环历史数据，第 %lld 块"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在同步手環歷史資料，第 %lld 塊"}}
@@ -1578,9 +1587,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Синхронизировано · %lld блоков"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано · %lld блок"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано · %lld блока"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано · %lld блоков"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано · %lld блоков"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -1636,9 +1669,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Синхронизация… %lld блоков"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизация… %lld блок"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизация… %lld блока"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизация… %lld блоков"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизация… %lld блоков"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -1691,7 +1748,36 @@
     "1 month · averages per observed day": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"1 Monat · Durchschnitt je erfasstem Tag"}},"es":{"stringUnit":{"state":"translated","value":"1 mes · promedios por día registrado"}},"fr":{"stringUnit":{"state":"translated","value":"1 mois · moyennes par jour enregistré"}},"pt-PT":{"stringUnit":{"state":"translated","value":"1 mês · médias por dia registado"}},"pl":{"stringUnit":{"state":"translated","value":"1 miesiąc · średnie na zarejestrowany dzień"}},"ru":{"stringUnit":{"state":"translated","value":"1 месяц · средние за день с данными"}},"it":{"stringUnit":{"state":"translated","value":"1 mese · medie per giorno registrato"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"1 个月 · 有记录日的平均值"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"1 個月 · 有紀錄日的平均值"}}}},
     "%lld months · averages per observed day": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Monate · Durchschnitt je erfasstem Tag"}},"es":{"stringUnit":{"state":"translated","value":"%lld meses · promedios por día registrado"}},"fr":{"stringUnit":{"state":"translated","value":"%lld mois · moyennes par jour enregistré"}},"pt-PT":{"stringUnit":{"state":"translated","value":"%lld meses · médias por dia registado"}},"pl":{"stringUnit":{"state":"translated","value":"Liczba miesięcy: %lld · średnie na zarejestrowany dzień"}},"ru":{"stringUnit":{"state":"translated","value":"Месяцев: %lld · средние за день с данными"}},"it":{"stringUnit":{"state":"translated","value":"%lld mesi · medie per giorno registrato"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"%lld 个月 · 有记录日的平均值"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"%lld 個月 · 有紀錄日的平均值"}}}},
     "%lld working sets · compare when you repeat this program": { "localizations": {
-      "de": {"stringUnit": {"state": "translated", "value": "%lld Arbeitssätze · vergleichbar, wenn du dieses Programm wiederholst"}}, "es": {"stringUnit": {"state": "translated", "value": "%lld series efectivas · compara al repetir este programa"}}, "fr": {"stringUnit": {"state": "translated", "value": "%lld séries de travail · à comparer quand tu refais ce programme"}}, "it": {"stringUnit": {"state": "translated", "value": "%lld serie di lavoro · confronta quando ripeti questo programma"}}, "pl": {"stringUnit": {"state": "translated", "value": "%lld serii roboczych · porównuj, gdy powtarzasz ten program"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld séries de trabalho · compara quando repetires este programa"}}, "ru": {"stringUnit": {"state": "translated", "value": "%lld рабочих подходов · сравнивай при повторе этой программы"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%lld 个正式组 · 重复同一计划时才可比较"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%lld 個正式組 · 重複同一計畫時才可比較"}}
+      "de": {"stringUnit": {"state": "translated", "value": "%lld Arbeitssätze · vergleichbar, wenn du dieses Programm wiederholst"}}, "es": {"stringUnit": {"state": "translated", "value": "%lld series efectivas · compara al repetir este programa"}}, "fr": {"stringUnit": {"state": "translated", "value": "%lld séries de travail · à comparer quand tu refais ce programme"}}, "it": {"stringUnit": {"state": "translated", "value": "%lld serie di lavoro · confronta quando ripeti questo programma"}}, "pl": {"stringUnit": {"state": "translated", "value": "%lld serii roboczych · porównuj, gdy powtarzasz ten program"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld séries de trabalho · compara quando repetires este programa"}}, "ru": {
+        "variations": {
+          "plural": {
+            "one": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld рабочий подход · сравнивай при повторе этой программы"
+              }
+            },
+            "few": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld рабочих подхода · сравнивай при повторе этой программы"
+              }
+            },
+            "many": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld рабочих подходов · сравнивай при повторе этой программы"
+              }
+            },
+            "other": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld рабочих подходов · сравнивай при повторе этой программы"
+              }
+            }
+          }
+        }
+      }, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%lld 个正式组 · 重复同一计划时才可比较"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%lld 個正式組 · 重複同一計畫時才可比較"}}
     } },
     "%@ in sets": { "localizations": {
       "de": {"stringUnit": {"state": "translated", "value": "%@ in Sätzen"}}, "es": {"stringUnit": {"state": "translated", "value": "%@ en series"}}, "fr": {"stringUnit": {"state": "translated", "value": "%@ en séries"}}, "it": {"stringUnit": {"state": "translated", "value": "%@ nelle serie"}}, "pl": {"stringUnit": {"state": "translated", "value": "%@ w seriach"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%@ em séries"}}, "ru": {"stringUnit": {"state": "translated", "value": "%@ в подходах"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%@ 在组内"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%@ 在組內"}}
@@ -2234,13 +2320,71 @@
       "de": {"stringUnit": {"state": "translated", "value": "%@ Wdh."}}, "en": {"stringUnit": {"state": "translated", "value": "%@ reps"}}, "es": {"stringUnit": {"state": "translated", "value": "%@ reps"}}, "fr": {"stringUnit": {"state": "translated", "value": "%@ répétitions"}}, "it": {"stringUnit": {"state": "translated", "value": "%@ ripetizioni"}}, "pl": {"stringUnit": {"state": "translated", "value": "%@ powtórzeń"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%@ repetições"}}, "ru": {"stringUnit": {"state": "translated", "value": "%@ повторений"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%@ 次"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%@ 次"}}
     } },
     "%lld reps": { "localizations": {
-      "de": {"stringUnit": {"state": "translated", "value": "%lld Wdh."}}, "en": {"stringUnit": {"state": "translated", "value": "%lld reps"}}, "es": {"stringUnit": {"state": "translated", "value": "%lld reps"}}, "fr": {"stringUnit": {"state": "translated", "value": "%lld répétitions"}}, "it": {"stringUnit": {"state": "translated", "value": "%lld ripetizioni"}}, "pl": {"stringUnit": {"state": "translated", "value": "%lld powtórzeń"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld repetições"}}, "ru": {"stringUnit": {"state": "translated", "value": "%lld повторений"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%lld 次"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%lld 次"}}
+      "de": {"stringUnit": {"state": "translated", "value": "%lld Wdh."}}, "en": {"stringUnit": {"state": "translated", "value": "%lld reps"}}, "es": {"stringUnit": {"state": "translated", "value": "%lld reps"}}, "fr": {"stringUnit": {"state": "translated", "value": "%lld répétitions"}}, "it": {"stringUnit": {"state": "translated", "value": "%lld ripetizioni"}}, "pl": {"stringUnit": {"state": "translated", "value": "%lld powtórzeń"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld repetições"}}, "ru": {
+        "variations": {
+          "plural": {
+            "one": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld повторение"
+              }
+            },
+            "few": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld повторения"
+              }
+            },
+            "many": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld повторений"
+              }
+            },
+            "other": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld повторений"
+              }
+            }
+          }
+        }
+      }, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%lld 次"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%lld 次"}}
     } },
     "%@ rest": { "localizations": {
       "de": {"stringUnit": {"state": "translated", "value": "%@ Pause"}}, "es": {"stringUnit": {"state": "translated", "value": "%@ de descanso"}}, "fr": {"stringUnit": {"state": "translated", "value": "%@ de repos"}}, "it": {"stringUnit": {"state": "translated", "value": "%@ di recupero"}}, "pl": {"stringUnit": {"state": "translated", "value": "%@ przerwy"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%@ de descanso"}}, "ru": {"stringUnit": {"state": "translated", "value": "отдых %@"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "休息 %@"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "休息 %@"}}
     } },
     "%lld sets": { "localizations": {
-      "de": {"stringUnit": {"state": "translated", "value": "%lld Sätze"}}, "es": {"stringUnit": {"state": "translated", "value": "%lld series"}}, "fr": {"stringUnit": {"state": "translated", "value": "%lld séries"}}, "it": {"stringUnit": {"state": "translated", "value": "%lld serie"}}, "pl": {"stringUnit": {"state": "translated", "value": "%lld serii"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld séries"}}, "ru": {"stringUnit": {"state": "translated", "value": "%lld подходов"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%lld 组"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%lld 組"}}
+      "de": {"stringUnit": {"state": "translated", "value": "%lld Sätze"}}, "es": {"stringUnit": {"state": "translated", "value": "%lld series"}}, "fr": {"stringUnit": {"state": "translated", "value": "%lld séries"}}, "it": {"stringUnit": {"state": "translated", "value": "%lld serie"}}, "pl": {"stringUnit": {"state": "translated", "value": "%lld serii"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld séries"}}, "ru": {
+        "variations": {
+          "plural": {
+            "one": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld подход"
+              }
+            },
+            "few": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld подхода"
+              }
+            },
+            "many": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld подходов"
+              }
+            },
+            "other": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%lld подходов"
+              }
+            }
+          }
+        }
+      }, "zh-Hans": {"stringUnit": {"state": "translated", "value": "%lld 组"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "%lld 組"}}
     } },
     "Anything you want to remember": { "localizations": {
       "de": {"stringUnit": {"state": "translated", "value": "Alles, was du dir merken willst"}}, "es": {"stringUnit": {"state": "translated", "value": "Cualquier cosa que quieras recordar"}}, "fr": {"stringUnit": {"state": "translated", "value": "Tout ce que tu veux retenir"}}, "it": {"stringUnit": {"state": "translated", "value": "Qualsiasi cosa tu voglia ricordare"}}, "pl": {"stringUnit": {"state": "translated", "value": "Cokolwiek chcesz zapamiętać"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Tudo o que queiras recordar"}}, "ru": {"stringUnit": {"state": "translated", "value": "Всё, что хочешь запомнить"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "任何你想记住的内容"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "任何你想記住的內容"}}
@@ -7912,9 +8056,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ ↔ %2$@: r = %3$@ (%4$@ %5$@) за %6$lld общих дней."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@ ↔ %2$@: r = %3$@ (%4$@ %5$@) за %6$lld общий день."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@ ↔ %2$@: r = %3$@ (%4$@ %5$@) за %6$lld общих дня."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@ ↔ %2$@: r = %3$@ (%4$@ %5$@) за %6$lld общих дней."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@ ↔ %2$@: r = %3$@ (%4$@ %5$@) за %6$lld общих дня."
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -8925,9 +9093,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@, последнее %2$@, %3$lld измерений"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@, последнее %2$@, %3$lld измерение"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@, последнее %2$@, %3$lld измерения"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@, последнее %2$@, %3$lld измерений"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@, последнее %2$@, %3$lld измерения"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -9786,9 +9978,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@: %2$@ прошлой ночью, %3$lld процентов ночи"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процент ночи"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процента ночи"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процентов ночи"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процента ночи"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -9915,9 +10131,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@: %2$@ прошлой ночью, %3$lld процентов ночи, обычно %4$@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процент ночи, обычно %4$@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процента ночи, обычно %4$@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процентов ночи, обычно %4$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@ прошлой ночью, %3$lld процента ночи, обычно %4$@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -10427,9 +10667,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@: %2$@, %3$lld процентов ночи"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@, %3$lld процент ночи"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@, %3$lld процента ночи"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@, %3$lld процентов ночи"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$@: %2$@, %3$lld процента ночи"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11236,9 +11500,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld приложений включено"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приложение включено"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приложения включены"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приложений включено"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приложения включены"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11480,9 +11768,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld вдохов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдох"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдоха"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдохов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдоха"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11538,9 +11850,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld вдохов · %@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдох · %@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдоха · %@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдохов · %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вдоха · %@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11596,9 +11932,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld фрагментов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагмент"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагмента"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагментов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагментов"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11654,9 +12014,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld фрагментов получено"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагмент получен"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагмента получено"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагментов получено"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld фрагментов получено"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11888,9 +12272,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld дней назад"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld день назад"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дня назад"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дней назад"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дня назад"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11940,9 +12348,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld дней без этого"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld день без этого"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дня без этого"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дней без этого"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дней без этого"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -11998,9 +12430,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld дней, которые также посчитал телефон"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld день, который также посчитал телефон"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дня, которые также посчитал телефон"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дней, которые также посчитал телефон"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дней, которые также посчитал телефон"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -12440,9 +12896,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld устройств измеряют ваш пульс"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld устройство измеряет ваш пульс"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld устройства измеряют ваш пульс"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld устройств измеряют ваш пульс"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld устройства измеряют ваш пульс"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -12730,9 +13210,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld часов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld час"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld часа"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld часов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld часов"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -12788,9 +13292,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld приёмов всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе ваших записей."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приём всё ещё учитывается в оценке. Это лишь приблизительный ориентир на основе ваших записей."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приёма всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе ваших записей."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приёмов всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе ваших записей."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld приёма всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе ваших записей."
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -12846,9 +13374,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld отмеченных приёмов кофеина позже вашего порога отхода ко сну. Кофеин может ещё действовать и мешать уснуть. Просто предупреждение о времени."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченный приём кофеина позже вашего порога отхода ко сну. Кофеин может ещё действовать и мешать уснуть. Просто предупреждение о времени."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченных приёма кофеина позже вашего порога отхода ко сну. Кофеин может ещё действовать и мешать уснуть. Просто предупреждение о времени."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченных приёмов кофеина позже вашего порога отхода ко сну. Кофеин может ещё действовать и мешать уснуть. Просто предупреждение о времени."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченных приёма кофеина позже вашего порога отхода ко сну. Кофеин может ещё действовать и мешать уснуть. Просто предупреждение о времени."
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -12904,9 +13456,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld отмеченных дней"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченный день"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченных дня"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченных дней"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld отмеченных дней"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -13132,9 +13708,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld маркеров отслеживается · 1 измерение"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld маркер отслеживается · 1 измерение"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld маркера отслеживаются · 1 измерение"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld маркеров отслеживается · 1 измерение"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld маркеров отслеживается · 1 измерение"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -13486,9 +14086,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld новых дней истории загружено. Откройте «Тренды», чтобы посмотреть."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld новый день истории загружен. Откройте «Тренды», чтобы посмотреть."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld новых дня истории загружено. Откройте «Тренды», чтобы посмотреть."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld новых дней истории загружено. Откройте «Тренды», чтобы посмотреть."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld новых дней истории загружено. Откройте «Тренды», чтобы посмотреть."
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -13544,9 +14168,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld ночей назад"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ночь назад"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ночи назад"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ночей назад"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ночи назад"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -13602,9 +14250,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld ночей осталось"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталась %lld ночь"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталось %lld ночи"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталось %lld ночей"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталось %lld ночи"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -14096,9 +14768,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld пар"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld пара"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld пары"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld пар"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld пары"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -14154,9 +14850,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld процентов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld процент"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld процента"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld процентов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld процента"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -14270,9 +14990,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld баллов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld балл"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld балла"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld баллов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld баллов"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -14578,9 +15322,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld измерений набрано, но недостаточно вариативности, чтобы вычислить связь."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерение набрано, но недостаточно вариативности, чтобы вычислить связь."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерения набрано, но недостаточно вариативности, чтобы вычислить связь."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерений набрано, но недостаточно вариативности, чтобы вычислить связь."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерений набрано, но недостаточно вариативности, чтобы вычислить связь."
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -14706,9 +15474,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld измерений · %2$@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерение · %2$@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерения · %2$@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерений · %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерения · %2$@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -14770,9 +15562,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld измерений · разреженно, расширено до %2$@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерение · разреженно, расширено до %2$@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерения · разреженно, расширено до %2$@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерений · разреженно, расширено до %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld измерения · разреженно, расширено до %2$@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -14828,9 +15644,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld измерений · ваши собственные записи"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерение · ваши собственные записи"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерения · ваши собственные записи"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерений · ваши собственные записи"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld измерений · ваши собственные записи"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -15002,9 +15842,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld строк пропущено"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строка пропущена"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строки пропущены"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строк пропущено"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строк пропущено"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -15066,9 +15930,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Осталось %1$lld секунд, %2$@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталась %1$lld секунда, %2$@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталось %1$lld секунды, %2$@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталось %1$lld секунд, %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Осталось %1$lld секунды, %2$@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -15124,9 +16012,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld рядов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ряд"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ряда"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld рядов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld рядов"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -15352,9 +16264,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld сессий · %2$@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессия · %2$@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессии · %2$@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессий · %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессии · %2$@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -15416,9 +16352,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld сессий · разреженно, расширено до %2$@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессия · разреженно, расширено до %2$@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессии · разреженно, расширено до %2$@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессий · разреженно, расширено до %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld сессии · разреженно, расширено до %2$@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -15532,9 +16492,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld видов спорта"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вид спорта"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вида спорта"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld видов спорта"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld вида спорта"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -15942,9 +16926,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld лет старше вашего возраста"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld год старше вашего возраста"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года старше вашего возраста"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld лет старше вашего возраста"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года старше вашего возраста"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -16000,9 +17008,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld лет младше вашего возраста"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld год младше вашего возраста"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года младше вашего возраста"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld лет младше вашего возраста"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года младше вашего возраста"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -16123,9 +17155,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld лет"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld год"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld лет"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -16181,9 +17237,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld лет старше"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld год старше"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года старше"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld лет старше"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года старше"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -16239,9 +17319,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld лет младше"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld год младше"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года младше"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld лет младше"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld года младше"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -17777,9 +18881,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "+%lld баллов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld балл"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld балла"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld баллов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld баллов"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -18827,9 +19955,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отслеживается 1 маркер · %lld показаний"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Отслеживается 1 маркер · %lld показание"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Отслеживается 1 маркер · %lld показания"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Отслеживается 1 маркер · %lld показаний"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Отслеживается 1 маркер · %lld показаний"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -29338,64 +30490,8 @@
         }
       }
     },
-    "Adds a simple fluid log with a daily goal that adjusts to your effort. Tap to add a sip, cup or bottle and watch a progress ring fill. On %@ only. Nothing is synced.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fügt ein einfaches Flüssigkeitsprotokoll mit einem Tagesziel hinzu, das sich deiner Belastung anpasst. Tippe, um einen Schluck, eine Tasse oder eine Flasche zu erfassen, und sieh zu, wie sich der Fortschrittsring füllt. Nur auf %@. Nichts wird synchronisiert."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Añade un registro simple de líquidos con una meta diaria que se ajusta a tu esfuerzo. Toca para añadir un sorbo, taza o botella y mira cómo se llena un anillo de progreso. Solo en %@. No se sincroniza nada."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajoute un journal de liquides simple avec un objectif quotidien qui s'adapte à votre effort. Touchez pour ajouter une gorgée, une tasse ou une bouteille et regardez un anneau de progression se remplir. Sur %@ uniquement. Rien n'est synchronisé."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aggiunge un semplice registro dei liquidi con un obiettivo giornaliero che si adatta al tuo sforzo. Tocca per aggiungere un sorso, una tazza o una bottiglia e guarda riempirsi l'anello di avanzamento. Solo su %@, niente viene sincronizzato."
-          }
-        },
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adiciona um registo simples e fluido com um objetivo diário que se ajusta ao teu esforço. Toque para adicionar um gole, copo ou garrafa e observe o enchimento do anel de progresso. Apenas em %@. Nada está sincronizado."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Добавляет простой журнал жидкости с дневной целью, которая подстраивается под ваше усилие. Нажмите, чтобы добавить глоток, чашку или бутылку, и смотрите, как заполняется кольцо прогресса. Только на %@. Ничего не синхронизируется."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加一个简单的水分记录，其每日目标会根据你的消耗进行调整。点击以添加一口、一杯或一瓶，并看着进度环填满。仅在 %@ 上，不会同步任何内容。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新增一個簡單的水分記錄，其每日目標會根據你的消耗進行調整。點擊以新增一口、一杯或一瓶，並看著進度環填滿。僅在 %@ 上，不會同步任何內容。"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dodaje prosty dziennik płynów z codziennym celem, który dostosowuje się do Twojego wysiłku. Stuknij, aby dodać łyk, filiżankę lub butelkę i obserwować napełnianie pierścienia postępu. Tylko w %@. Nic nie jest zsynchronizowane."
-          }
-        }
-      }
-    },
+    "Adds a fluid log and an effort-adjusted daily goal. Log a sip, cup or bottle to fill your progress ring. Data stays on this device.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Adds a fluid log and an effort-adjusted daily goal. Log a sip, cup or bottle to fill your progress ring. Data stays on this device."}}, "de": {"stringUnit": {"state": "translated", "value": "Fügt ein Trinkprotokoll und ein Tagesziel hinzu, das sich deiner Belastung anpasst. Erfasse einen Schluck, eine Tasse oder eine Flasche, um den Fortschrittsring zu füllen. Die Daten bleiben auf diesem Gerät."}}, "es": {"stringUnit": {"state": "translated", "value": "Añade un registro de líquidos y una meta diaria ajustada a tu esfuerzo. Registra un sorbo, taza o botella para llenar el anillo de progreso. Los datos permanecen en este dispositivo."}}, "fr": {"stringUnit": {"state": "translated", "value": "Ajoute un journal de boissons et un objectif quotidien adapté à votre effort. Enregistrez une gorgée, une tasse ou une bouteille pour remplir votre anneau de progression. Les données restent sur cet appareil."}}, "it": {"stringUnit": {"state": "translated", "value": "Aggiunge un registro dei liquidi e un obiettivo giornaliero adattato al tuo sforzo. Registra un sorso, una tazza o una bottiglia per riempire l’anello di avanzamento. I dati restano su questo dispositivo."}}, "pl": {"stringUnit": {"state": "translated", "value": "Dodaje dziennik płynów i dzienny cel dostosowany do Twojego wysiłku. Zapisz łyk, filiżankę lub butelkę, aby wypełnić pierścień postępu. Dane pozostają na tym urządzeniu."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Adiciona um registo de líquidos e um objetivo diário ajustado ao teu esforço. Regista um gole, copo ou garrafa para preencher o anel de progresso. Os dados ficam neste dispositivo."}}, "ru": {"stringUnit": {"state": "translated", "value": "Добавляет журнал жидкости и дневную цель с учётом нагрузки. Запишите глоток, чашку или бутылку, чтобы заполнить кольцо прогресса. Данные остаются на этом устройстве."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "添加饮水记录和根据消耗调整的每日目标。记录一口、一杯或一瓶水来填满进度环。数据保留在此设备上。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "新增飲水記錄和根據消耗調整的每日目標。記錄一口、一杯或一瓶水來填滿進度環。資料保留在此裝置上。"}}}},
+    "Also imports water from Apple Health when connected and allowed to read water data. Drinks logged in NOOP are not written to Apple Health.": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Also imports water from Apple Health when connected and allowed to read water data. Drinks logged in NOOP are not written to Apple Health."}}, "de": {"stringUnit": {"state": "translated", "value": "Importiert auch Wasser aus Apple Health, wenn die Verbindung besteht und der Lesezugriff auf Wasserdaten erlaubt ist. In NOOP erfasste Getränke werden nicht in Apple Health geschrieben."}}, "es": {"stringUnit": {"state": "translated", "value": "También importa agua de Apple Health cuando está conectado y tiene permiso para leer los datos de agua. Las bebidas registradas en NOOP no se escriben en Apple Health."}}, "fr": {"stringUnit": {"state": "translated", "value": "Importe aussi l’eau depuis Apple Health lorsque la connexion est active et que la lecture des données d’eau est autorisée. Les boissons enregistrées dans NOOP ne sont pas écrites dans Apple Health."}}, "it": {"stringUnit": {"state": "translated", "value": "Importa anche l’acqua da Apple Health quando è connesso e la lettura dei dati sull’acqua è consentita. Le bevande registrate in NOOP non vengono scritte in Apple Health."}}, "pl": {"stringUnit": {"state": "translated", "value": "Importuje też wodę z Apple Health po połączeniu i uzyskaniu zgody na odczyt danych o wodzie. Napoje zapisane w NOOP nie są zapisywane w Apple Health."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Também importa água do Apple Health quando está ligado e tem permissão para ler dados de água. As bebidas registadas no NOOP não são gravadas no Apple Health."}}, "ru": {"stringUnit": {"state": "translated", "value": "Также импортирует воду из Apple Health при подключении и разрешении на чтение данных о воде. Напитки, записанные в NOOP, не записываются в Apple Health."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "连接 Apple Health 并获得读取饮水数据的权限后，也会导入其中的饮水记录。在 NOOP 中记录的饮品不会写入 Apple Health。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "連接 Apple Health 並取得讀取飲水資料的權限後，也會匯入其中的飲水記錄。在 NOOP 中記錄的飲品不會寫入 Apple Health。"}}}},
     "Adds a water-log card to your dashboard": {
       "localizations": {
         "de": {
@@ -37823,9 +38919,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Заряд батареи %lld процентов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Заряд батареи %lld процент"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Заряд батареи %lld процента"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Заряд батареи %lld процентов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Заряд батареи %lld процента"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -41049,9 +42169,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вдох на %lld секунд"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вдох на %lld секунду"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вдох на %lld секунды"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вдох на %lld секунд"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вдох на %lld секунды"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -41339,9 +42483,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выдох на %lld секунд"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Выдох на %lld секунду"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Выдох на %lld секунды"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Выдох на %lld секунд"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Выдох на %lld секунды"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -91650,9 +92818,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Последние %lld ударов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Последний %lld удар"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Последние %lld удара"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Последние %lld ударов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Последние %lld удара"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -129237,9 +130429,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RMSSD %lld миллисекунд"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "RMSSD %lld миллисекунда"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "RMSSD %lld миллисекунды"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "RMSSD %lld миллисекунд"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "RMSSD %lld миллисекунды"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -140145,9 +141361,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Скользящее RMSSD %lld миллисекунд"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Скользящее RMSSD %lld миллисекунда"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Скользящее RMSSD %lld миллисекунды"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Скользящее RMSSD %lld миллисекунд"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Скользящее RMSSD %lld миллисекунды"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -152175,9 +153415,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разреженно, расширено до %1$@ · %2$lld измерений"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Разреженно, расширено до %1$@ · %2$lld измерение"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Разреженно, расширено до %1$@ · %2$lld измерения"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Разреженно, расширено до %1$@ · %2$lld измерений"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Разреженно, расширено до %1$@ · %2$lld измерения"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -156429,9 +157693,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Батарея браслета: %1$lld процентов%2$@%3$@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Батарея браслета: %1$lld процент%2$@%3$@"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Батарея браслета: %1$lld процента%2$@%3$@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Батарея браслета: %1$lld процентов%2$@%3$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Батарея браслета: %1$lld процента%2$@%3$@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -176375,9 +177663,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Талия, %lld дюймов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Талия, %lld дюйм"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Талия, %lld дюйма"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Талия, %lld дюймов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Талия, %lld дюйма"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -179055,9 +180367,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вес, %lld фунтов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вес, %lld фунт"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вес, %lld фунта"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вес, %lld фунтов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Вес, %lld фунта"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -190941,9 +192277,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "−%lld очков"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "−%lld очко"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "−%lld очка"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "−%lld очков"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "−%lld очков"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -194219,9 +195579,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "последний приём — примерно %1$@ назад · %2$lld приёмов всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе того, что вы записали."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "последний приём — примерно %1$@ назад · %2$lld приём всё ещё учитывается в оценке. Это лишь приблизительный ориентир на основе того, что вы записали."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "последний приём — примерно %1$@ назад · %2$lld приёма всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе того, что вы записали."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "последний приём — примерно %1$@ назад · %2$lld приёмов всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе того, что вы записали."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "последний приём — примерно %1$@ назад · %2$lld приёма всё ещё учитываются в оценке. Это лишь приблизительный ориентир на основе того, что вы записали."
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
@@ -199650,9 +201034,33 @@
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "рост на %lld баллов"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "рост на %lld балл"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "рост на %lld балла"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "рост на %lld баллов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "рост на %lld баллов"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
