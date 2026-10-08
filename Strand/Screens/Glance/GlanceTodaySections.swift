@@ -251,6 +251,9 @@ struct GlanceHealthMonitor: View {
     let dayKey: String
 
     @State private var allReadings: [BodyVitalReading] = []
+    /// VO₂ max, the measured value from Apple Health when there is one, else NOOP's own estimate. Nil hides
+    /// the tile: it is a slow fitness figure, not an overnight vital, so it has no "No data" state here.
+    @State private var vo2: GlanceVO2?
     private let units = GlanceUnitPrefs()
 
     var body: some View {
@@ -276,9 +279,27 @@ struct GlanceHealthMonitor: View {
                                   tint: StrandPalette.restLine)
             }
             .buttonStyle(LiquidPressStyle())
+            if let vo2 {
+                NavigationLink {
+                    GlanceTrendDetailPage(series: GlanceTrendSeries(
+                        title: String(localized: "VO₂ Max"), icon: "lungs.fill", tint: StrandPalette.chargeColor,
+                        points: vo2.points, format: { GlanceVO2.text($0) },
+                        detailsRoute: .metric(vo2.metricKey)))
+                } label: {
+                    let trend = GlanceHistory.trend(vo2.points, through: "9999-99-99", value: nil)
+                    GlanceMonitorTile(icon: "lungs.fill", label: String(localized: "VO₂ Max"),
+                                      value: GlanceVO2.text(vo2.latest),
+                                      status: vo2.status,
+                                      gauge: GlanceMonitorTile.gauge(value: vo2.latest, values: trend.values,
+                                                                     range: vo2.range),
+                                      tint: StrandPalette.chargeColor)
+                }
+                .buttonStyle(LiquidPressStyle())
+            }
         }
         .task(id: GlanceVitalInputs.reloadKey(repo, units: units)) {
             allReadings = await GlanceVitalInputs.loadReadings(repo, units: units)
+            vo2 = await GlanceVO2.load(repo)
         }
     }
 }

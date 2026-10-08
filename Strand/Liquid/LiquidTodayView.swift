@@ -416,12 +416,9 @@ struct LiquidTodayView: View {
                     // Self-gates on the toggle AND on the detector finding an unsaved, un-dismissed window,
                     // so it renders nothing by default.
                     AutoWorkoutCard()
-                    // #2463 Glance: the setup guide takes the place of the provenance section, which is
-                    // reference detail rather than something to act on. Today only, like the other action
-                    // cards above.
-                    if glance {
-                        if selectedDayOffset == 0 { StrapSetupSummaryCard() }
-                    } else {
+                    // #2463 Glance leaves out the provenance section (reference detail, not something to act
+                    // on) and the "Get more from your strap" card; the setup guide stays in Settings.
+                    if !glance {
                         dataSourcesSection
                     }
                     Color.clear.frame(height: 90) // floating tab-bar clearance
@@ -825,6 +822,7 @@ struct LiquidTodayView: View {
         if selectedDayOffset == 0 {
             JournalReminderCard()
             GlanceBodyAgeRow()
+            GlanceBatteryCard()
         }
     }
 
@@ -3387,15 +3385,7 @@ private struct LiquidStrapBatteryRow: View {
     /// days; nil (no banked discharge yet, or charging) hides it, so the row only ever shows an estimate we trust.
     private var estimateText: String? {
         guard live.charging != true, let est = live.batteryEstimate else { return nil }
-        let hours = est.hoursRemaining
-        guard hours.isFinite, hours > 0 else { return nil }
-        if hours < 48 {
-            return String(localized: "~\(Int(hours.rounded()))h left")
-        }
-        let days = Int((hours / 24).rounded())
-        return days == 1
-            ? String(localized: "~1 day left")
-            : String(localized: "~\(days) days left")
+        return BatteryRuntimeText.remaining(hours: est.hoursRemaining)
     }
 }
 
