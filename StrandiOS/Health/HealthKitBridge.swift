@@ -1313,6 +1313,13 @@ final class HealthKitBridge: ObservableObject {
         func signature(_ row: WorkoutRow) -> String {
             "\(row.sport)|\(Int((row.energyKcal ?? 0).rounded()))|\(Int((row.distanceM ?? 0).rounded()))"
         }
+        // The workout is recorded by the wearer's strap, so name it as the device (Strava shows it as the
+        // recording device); the source app stays NOOP. The device is not part of the signature, so
+        // workouts already in Health are not rewritten for it.
+        let strapDevice = repo.activeDeviceDisplayName().map {
+            HKDevice(name: $0, manufacturer: $0.hasPrefix("WHOOP") ? "WHOOP" : nil, model: nil, hardwareVersion: nil,
+                     firmwareVersion: nil, softwareVersion: nil, localIdentifier: nil, udiDeviceIdentifier: nil)
+        } ?? .local()
         let existing = await ownWorkouts(fromTs: fromTs, toTs: toTs)
         let plan = WorkoutWritebackPlan.plan(
             rows: rows.map { .init(key: key($0), signature: signature($0), startTs: $0.startTs, endTs: $0.endTs) },
@@ -1346,7 +1353,7 @@ final class HealthKitBridge: ObservableObject {
             guard end > start else { continue }
             let config = HKWorkoutConfiguration()
             config.activityType = Self.activityType(forSport: row.sport)
-            let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: .local())
+            let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: strapDevice)
             do {
                 try await builder.beginCollection(at: start)
                 try await builder.addMetadata([HKMetadataKeyExternalUUID: key(row), Self.workoutSignatureKey: signature(row)])
