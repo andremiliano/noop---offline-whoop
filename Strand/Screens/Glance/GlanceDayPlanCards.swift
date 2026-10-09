@@ -68,6 +68,8 @@ struct GlanceTonightCard: View {
 /// present, else the bedtime-spread score) against their recent values. Opens the Sleep tab.
 struct GlanceSleepConsistencyRow: View {
     let metric: SleepModel.Metric
+    /// True when the figure is WHOOP's own imported value rather than NOOP's bedtime-spread score.
+    var isImported = false
 
     @State private var explained = false
 
@@ -98,7 +100,13 @@ struct GlanceSleepConsistencyRow: View {
             let spread = Int((120 * (1 - latest / 100)).rounded())
             let score = Int(latest.rounded())
             DisclosureGroup(isExpanded: $explained) {
-                Text("100% means you go to bed at the same time every night; the lower it is, the more your bedtime moves around. NOOP scores it over your last 14 nights: a spread of about \(spread) minutes either side of your usual bedtime reads as \(score)%, and 2 hours reads as 0%. A WHOOP-imported value is shown as WHOOP gives it. There are no official good or bad bands, so the line above only compares with your own usual.")
+                Group {
+                    if isImported {
+                        Text("100% means you go to bed at the same time every night; the lower it is, the more your bedtime moves around. This is WHOOP's own score from your import, so NOOP cannot break it down further. There are no official good or bad bands, so the line above only compares with your own usual.")
+                    } else {
+                        Text("100% means you go to bed at the same time every night; the lower it is, the more your bedtime moves around. NOOP scores it over your last 14 nights: a spread of about \(spread) minutes either side of your usual bedtime reads as \(score)%, and 2 hours reads as 0%. There are no official good or bad bands, so the line above only compares with your own usual.")
+                    }
+                }
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)

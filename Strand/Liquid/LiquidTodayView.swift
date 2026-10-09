@@ -810,8 +810,10 @@ struct LiquidTodayView: View {
                 GlanceSectionTitle(title: String(localized: "Tonight"))
                 GlanceTonightCard(plan: tonight)
             }
-            if let consistency = hostedSleepModel?.consistency {
-                GlanceSleepConsistencyRow(metric: consistency)
+            if let model = hostedSleepModel {
+                // The same test `SleepModel.consistencySeries` uses to pick WHOOP's figure over NOOP's.
+                let imported = repo.days.last.map { repo.importedSleep[$0.day]?.consistencyPct != nil } ?? false
+                GlanceSleepConsistencyRow(metric: model.consistency, isImported: imported)
             }
             GlanceChargeLinksCard()
         } else {

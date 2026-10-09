@@ -29,7 +29,7 @@ enum Vo2MaxNorms {
         }
     }
 
-    /// Age bands, in years: 20-29 … 70-79. Younger adults read against the first, older against the last.
+    /// Age bands, in years: 20-29 … 70-79. 18 and 19 read against the first, anyone over 79 against the last.
     static let bands: [ClosedRange<Int>] = [20...29, 30...39, 40...49, 50...59, 60...69, 70...79]
 
     // Rows follow `bands`; columns are fair, good, excellent, superior.
@@ -48,8 +48,10 @@ enum Vo2MaxNorms {
     }
 
     /// The cutoffs for this age and sex, or nil when the sex is neither "male" nor "female" (the table has
-    /// no other column, and mixing the two would be a guess).
+    /// no other column, and mixing the two would be a guess) or the age is under 18, which also covers an
+    /// unset profile reading 0: the table is for adults and an unknown age must not borrow the 20-29 row.
     static func cutoffs(age: Int, sex: String) -> Cutoffs? {
+        guard age >= 18 else { return nil }
         let rows: [[Double]]
         switch sex.lowercased() {
         case "male": rows = men

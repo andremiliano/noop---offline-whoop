@@ -221,13 +221,17 @@ struct GlanceTrendSections: View {
         let lo = values.min() ?? 0, hi = values.max() ?? 1
         let pad = max((hi - lo) * 0.12, 1e-6)
         let dense = rows.count > 45
+        // Each zone clipped to the visible domain; one wholly outside it has nothing to draw.
+        let zoneRects = series.zones.enumerated().compactMap { i, z -> (index: Int, low: Double, high: Double)? in
+            let low = max(z.lower ?? (lo - pad), lo - pad), high = min(z.upper ?? (hi + pad), hi + pad)
+            return low < high ? (i, low, high) : nil
+        }
         return Chart {
             if let first = rows.first?.date, let last = rows.last?.date {
-                ForEach(Array(series.zones.enumerated()), id: \.element.id) { i, z in
+                ForEach(zoneRects, id: \.index) { r in
                     RectangleMark(xStart: .value("Start", first), xEnd: .value("End", last),
-                                  yStart: .value("Low", max(z.lower ?? (lo - pad), lo - pad)),
-                                  yEnd: .value("High", min(z.upper ?? (hi + pad), hi + pad)))
-                        .foregroundStyle(series.tint.opacity(0.06 + 0.07 * Double(i)))
+                                  yStart: .value("Low", r.low), yEnd: .value("High", r.high))
+                        .foregroundStyle(series.tint.opacity(0.06 + 0.07 * Double(r.index)))
                 }
             }
             if series.zones.isEmpty, let band, let first = rows.first?.date, let last = rows.last?.date {

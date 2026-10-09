@@ -32,3 +32,60 @@ enum WorkoutWritebackSelection {
         return true
     }
 }
+
+/// What the Apple Health workout write-back does with the copies already in Health.
+///
+/// A Health workout is immutable and every write is a NEW object that readers such as Bevel import as a
+/// new activity, so a workout is written once and then left alone. It is rewritten only when its content
+/// changed (the signature differs) or its end time moved, and not at all while it may still be running.
+struct WorkoutWritebackPlan: Equatable {
+    /// What the store holds for one session, reduced to what the plan compares.
+    struct Row: Equatable {
+        let key: String
+        /// Sport, energy and distance as written; a change in any of them means the Health copy is stale.
+        let signature: String
+        let startTs: Int
+        let endTs: Int
+    }
+
+    /// One of our workouts already in Health. `signature` is nil for a copy written before signatures existed.
+    struct Existing: Equatable {
+        let id: UUID
+        let key: String
+        let signature: String?
+        let startTs: Double
+        let endTs: Double
+    }
+
+    /// An end time this close to the stored one is the same session.
+    static let endTolerance = 60.0
+    /// A workout that ended less than this long before the write is treated as possibly still running.
+    static let settleSeconds = 600
+
+    /// Existing copies to keep.
+    let kept: Set<UUID>
+    /// Indices into `rows` that need a new Health workout.
+    let toWrite: [Int]
+    /// Existing copies that match no row, or are extra copies of one.
+    let stale: [UUID]
+
+    static func plan(rows: [Row], existing: [Existing], now: Int) -> WorkoutWritebackPlan {
+        var kept = Set<UUID>()
+        var toWrite: [Int] = []
+        for (i, row) in rows.enumerated() {
+            let pending = row.endTs > now - settleSeconds
+            let match = existing.first { w in
+                guard !kept.contains(w.id), w.key == row.key else { return false }
+                // A running workout keeps whatever copy it has (nothing is written until it settles), so
+                // its moving end time and growing totals never cost a new Health object per sync.
+                if pending { return true }
+                return abs(w.startTs - Double(row.startTs)) < 1
+                    && abs(w.endTs - Double(row.endTs)) < endTolerance
+                    && (w.signature == nil || w.signature == row.signature)
+            }
+            if let match { kept.insert(match.id) } else if !pending { toWrite.append(i) }
+        }
+        return WorkoutWritebackPlan(kept: kept, toWrite: toWrite,
+                                    stale: existing.map(\.id).filter { !kept.contains($0) })
+    }
+}

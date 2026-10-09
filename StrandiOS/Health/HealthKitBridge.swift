@@ -1241,38 +1241,23 @@ final class HealthKitBridge: ObservableObject {
     /// twin's `noop-workout-<startTs>` `clientRecordId`.
     /// How many workout rows each write-back read asks the store for, per source.
     ///
-    /// Named rather than inline because [deleteOrphanedWorkouts] has to compare against it: a read that
+    /// Named rather than inline because [writeWorkouts] has to compare against it: a read that
     /// comes back holding exactly this many rows may have been truncated, and a truncated read cannot be
     /// used to decide that a Health workout has no counterpart. (#2210)
     private static let workoutReadLimit = 500
 
-    /// Delete the workouts we wrote into [fromTs, toTs] whose key is no longer among [keeping].
+    /// Workout metadata holding what was written (sport, energy, distance), so a changed workout is
+    /// recognised and an unchanged one is not written again.
+    private static let workoutSignatureKey = "NOOPWorkoutSignature"
+
+    /// The workouts we wrote into [fromTs, toTs], found by source AND a `noop:workout:` external UUID, so a
+    /// workout from another app is never returned. One of ours with no key at all is left alone: it
+    /// cannot be matched against the store, and the #1503 sweep already covers that class.
     ///
-    /// Reads the window back from Health and deletes only objects that are ours by source AND carry a
-    /// `noop:workout:` external UUID, so a workout written by another app, or by us under some future
-    /// scheme, is never touched. Everything removed was observed first; nothing is deleted by range.
-    ///
-    /// A workout of ours with no external UUID at all is LEFT ALONE. It cannot be matched against the
-    /// store, so deleting it would be guessing, and the #1503 sweep already exists for that class.
-    ///
-    /// ONE assumption this rests on, and it is newly load-bearing: that deleting an `HKWorkout` also
-    /// removes the energy and distance samples `writeWorkouts` attached through its `HKWorkoutBuilder`.
-    /// The key-based delete already assumed it, but harmlessly, because every delete there is followed
-    /// immediately by a rewrite of the same key, so a surviving child is replaced rather than stranded.
-    /// An orphan is deleted and NOT rewritten, so if the assumption is wrong its children are left in
-    /// Health attributed to us with no workout above them, and nothing here will ever collect them.
-    ///
-    /// There is no fallback handle. `builder.addMetadata` puts the external UUID on the WORKOUT; the
-    /// samples go through `builder.addSamples` carrying no metadata at all, so they cannot be found by
-    /// key. Finding them by type and range instead would sweep `activeEnergyBurned` written by our own
-    /// vitals path and by every other source, which is precisely the blind range delete this function
-    /// exists to avoid. Verifying the assumption needs a device (#2210).
-    ///
-    /// Note also that this reads. `authorizationStatus` reports SHARE permission only, and HealthKit
-    /// does not let an app ask whether it may read. With write granted and read withheld the query
-    /// returns nothing rather than failing, so reconciliation quietly does nothing and the duplicates
-    /// stay. That fails safe, but it fails silent.
-    /// Every workout this app wrote in the window, whatever its key.
+    /// Callers delete what this returns, which assumes that deleting an `HKWorkout` also removes the
+    /// energy and distance samples its builder attached. Verifying that needs a device (#2210). Note too
+    /// that this reads: with write granted and read withheld the query returns nothing rather than
+    /// failing, so reconciliation quietly does nothing.
     private func ownWorkouts(fromTs: Int, toTs: Int) async -> [HKWorkout] {
         let pred = NSCompoundPredicate(andPredicateWithSubpredicates: [
             HKQuery.predicateForObjects(from: HKSource.default()),
@@ -1293,7 +1278,10 @@ final class HealthKitBridge: ObservableObject {
         return await withCheckedContinuation { (cont: CheckedContinuation<[HKWorkout], Never>) in
             let q = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: pred,
                                   limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
-                cont.resume(returning: (samples ?? []).compactMap { $0 as? HKWorkout })
+                cont.resume(returning: (samples ?? []).compactMap { $0 as? HKWorkout }.filter {
+                    ($0.metadata?[HKMetadataKeyExternalUUID] as? String)?
+                        .hasPrefix(HealthWriteback.appleHealthWorkoutKeyPrefix) == true
+                })
             }
             store.execute(q)
         }
@@ -1318,34 +1306,41 @@ final class HealthKitBridge: ObservableObject {
 
         func key(_ row: WorkoutRow) -> String { HealthWriteback.appleHealthWorkoutKey(startTs: row.startTs) }
 
-        // A Health workout is only ever written ONCE. Rewriting an unchanged one gives it a new object id,
-        // and apps reading Health (Bevel) take every new object for a new activity, so each sync would add
-        // the same workout again. So: keep one existing copy per row that still matches it, delete what
-        // matches nothing (a workout that left the store, drifted, or is a duplicate: #2210), write the rest.
-        //
-        // Deletes need a trustworthy store read (a failed or truncated read looks like "nothing here"),
-        // and only ever touch objects from our own source in this window.
+        // A Health workout is only ever written ONCE (see `WorkoutWritebackPlan`): rewriting an unchanged one
+        // gives it a new object id, and apps reading Health (Bevel) take every new object for a new activity.
+        // Deletes need a trustworthy store read (a failed or truncated read looks like "nothing here"), and
+        // only ever touch objects from our own source in this window.
+        func signature(_ row: WorkoutRow) -> String {
+            "\(row.sport)|\(Int((row.energyKcal ?? 0).rounded()))|\(Int((row.distanceM ?? 0).rounded()))"
+        }
         let existing = await ownWorkouts(fromTs: fromTs, toTs: toTs)
-        var kept = Set<UUID>()
-        var toWrite: [WorkoutRow] = []
-        for row in rows {
-            let match = existing.first { w in
-                !kept.contains(w.uuid)
-                    && (w.metadata?[HKMetadataKeyExternalUUID] as? String) == key(row)
-                    && abs(w.startDate.timeIntervalSince1970 - Double(row.startTs)) < 1
-                    && abs(w.endDate.timeIntervalSince1970 - Double(row.endTs)) < 1
+        let plan = WorkoutWritebackPlan.plan(
+            rows: rows.map { .init(key: key($0), signature: signature($0), startTs: $0.startTs, endTs: $0.endTs) },
+            existing: existing.map {
+                .init(id: $0.uuid, key: ($0.metadata?[HKMetadataKeyExternalUUID] as? String) ?? "",
+                      signature: $0.metadata?[Self.workoutSignatureKey] as? String,
+                      startTs: $0.startDate.timeIntervalSince1970, endTs: $0.endDate.timeIntervalSince1970)
+            },
+            now: toTs)
+        let staleObjects = existing.filter { plan.stale.contains($0.uuid) }
+        var removal = "0 stale copies"
+        if !staleObjects.isEmpty {
+            if mineRead != nil, computedRead != nil,
+               mine.count < Self.workoutReadLimit, computed.count < Self.workoutReadLimit {
+                do {
+                    try await store.delete(staleObjects)
+                    removal = "\(staleObjects.count) stale copies removed"
+                } catch {
+                    removal = "\(staleObjects.count) stale copies NOT removed (\(error.localizedDescription))"
+                }
+            } else {
+                removal = "\(staleObjects.count) stale copies left (store read incomplete)"
             }
-            if let match { kept.insert(match.uuid) } else { toWrite.append(row) }
         }
-        if mineRead != nil, computedRead != nil,
-           mine.count < Self.workoutReadLimit, computed.count < Self.workoutReadLimit {
-            let stale = existing.filter { !kept.contains($0.uuid) }
-            if !stale.isEmpty { _ = try? await store.delete(stale) }
-        }
-        workoutWriteStatus = "Workouts: \(rows.count) in NOOP, \(existing.count) already in Health, \(toWrite.count) written, \(existing.filter { !kept.contains($0.uuid) }.count) stale copies removed."
-        guard !toWrite.isEmpty else { return }
+        workoutWriteStatus = "Workouts: \(rows.count) in NOOP, \(existing.count) already in Health, \(plan.toWrite.count) written, \(removal)."
+        guard !plan.toWrite.isEmpty else { return }
 
-        for row in toWrite {
+        for row in plan.toWrite.map({ rows[$0] }) {
             let start = Date(timeIntervalSince1970: TimeInterval(row.startTs))
             let end = Date(timeIntervalSince1970: TimeInterval(row.endTs))
             guard end > start else { continue }
@@ -1354,7 +1349,7 @@ final class HealthKitBridge: ObservableObject {
             let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: .local())
             do {
                 try await builder.beginCollection(at: start)
-                try await builder.addMetadata([HKMetadataKeyExternalUUID: key(row)])
+                try await builder.addMetadata([HKMetadataKeyExternalUUID: key(row), Self.workoutSignatureKey: signature(row)])
                 var extras: [HKSample] = []
                 if let kcal = row.energyKcal, kcal > 0,
                    let t = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),

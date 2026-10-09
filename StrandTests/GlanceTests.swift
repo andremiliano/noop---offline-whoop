@@ -374,8 +374,10 @@ extension GlanceTests {
         XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 34, sex: "male"),
                        Vo2MaxNorms.Cutoffs(fair: 40.5, good: 44.0, excellent: 48.3, superior: 54.0))
         XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 34, sex: "Female")?.fair, 34.4)
-        // Younger than the table reads against its first row, older against its last.
-        XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 17, sex: "male")?.fair, 41.7)
+        // 18 and 19 read against the first row, older than 79 against the last; an unset age has none.
+        XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 18, sex: "male")?.fair, 41.7)
+        XCTAssertNil(Vo2MaxNorms.cutoffs(age: 0, sex: "male"))
+        XCTAssertNil(Vo2MaxNorms.cutoffs(age: 17, sex: "female"))
         XCTAssertEqual(Vo2MaxNorms.cutoffs(age: 85, sex: "female")?.superior, 36.7)
         XCTAssertNil(Vo2MaxNorms.cutoffs(age: 34, sex: "nonbinary"))
         XCTAssertEqual(Vo2MaxNorms.bandLabel(age: 34), "30-39")
@@ -393,5 +395,21 @@ extension GlanceTests {
         XCTAssertEqual(Vo2MaxNorms.category(53.9, cutoffs: c), .excellent)
         XCTAssertNil(c.lowerEdge(.low))
         XCTAssertEqual(c.lowerEdge(.good), 44.0)
+    }
+}
+
+extension GlanceTests {
+    func testVo2ZonesAndCategoryNameAgree() throws {
+        let z = try XCTUnwrap(GlanceVO2.zones(age: 34, sex: "male")).zones
+        XCTAssertEqual(z.count, 5)
+        XCTAssertNil(z.first?.lower)
+        XCTAssertNil(z.last?.upper)
+        // Zones tile the line: each one's upper edge is the next one's lower edge, so a value is in exactly one.
+        for i in 0..<4 { XCTAssertEqual(z[i].upper, z[i + 1].lower) }
+        for v in [30.0, 40.5, 44.0, 48.3, 54.0, 70.0] { XCTAssertEqual(z.filter { $0.contains(v) }.count, 1) }
+        XCTAssertEqual(GlanceVO2.categoryName(58.5, age: 34, sex: "male"), z.last?.name)
+        XCTAssertEqual(GlanceVO2.categoryName(30, age: 34, sex: "male"), z.first?.name)
+        XCTAssertNil(GlanceVO2.categoryName(58.5, age: 0, sex: "male"))
+        XCTAssertNil(GlanceVO2.zones(age: 34, sex: "nonbinary"))
     }
 }
