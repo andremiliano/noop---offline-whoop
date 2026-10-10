@@ -102,9 +102,7 @@ struct CoachHomeView: View {
                 if coach.pageBriefLoading && coach.pageBrief == nil { writing }
                 if let error = coach.pageBriefError, coach.pageBrief == nil { problem(error) }
                 if let brief = coach.pageBrief {
-                    if !brief.today.isEmpty { todaySection(brief.today) }
-                    if !brief.watch.isEmpty { watchCard(brief.watch) }
-                    if !brief.tonight.isEmpty { tonightCard(brief.tonight) }
+                    if !brief.today.isEmpty || !brief.tonight.isEmpty { todayCard(brief) }
                 }
                 if let g = glance, g.week.contains(where: { $0.charge != nil }) { weekCard(g) }
                 footer
@@ -223,7 +221,7 @@ struct CoachHomeView: View {
                         }
                     }
                 }
-                if let stats = glance?.stats, !stats.isEmpty {
+                if let stats = glance?.stats.filter({ $0.id != "effort" }), !stats.isEmpty {
                     Divider().overlay(StrandPalette.hairline)
                     HStack(alignment: .top, spacing: 0) {
                         ForEach(stats) { StatColumn(stat: $0) }
@@ -294,27 +292,35 @@ struct CoachHomeView: View {
         }
     }
 
-    private func todaySection(_ items: [CoachBriefContent.Action]) -> some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.space2) {
+    /// One card, not four: what to do today and tonight, a line each with an icon to scan by.
+    private func todayCard(_ brief: CoachBriefContent) -> some View {
+        var rows: [(icon: String, title: String, detail: String)] = brief.today.enumerated().map {
+            (Self.icon(for: $0.element.title, index: $0.offset), $0.element.title.coachPlain, $0.element.detail)
+        }
+        if !brief.tonight.isEmpty { rows.append(("moon.stars.fill", String(localized: "Tonight"), brief.tonight)) }
+        return VStack(alignment: .leading, spacing: NoopMetrics.space2) {
             Text("Today").strandOverline()
-            ForEach(Array(items.enumerated()), id: \.element.id) { i, a in
-                StrandCard(padding: NoopMetrics.cardPadding) {
-                    HStack(alignment: .top, spacing: NoopMetrics.space3) {
-                        Image(systemName: Self.icon(for: a.title, index: i))
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(StrandPalette.accent)
-                            .frame(width: 28)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(verbatim: a.title.coachPlain)
-                                .font(StrandFont.subhead.weight(.semibold))
-                                .foregroundStyle(StrandPalette.textPrimary)
-                            Text(a.detail.coachInline)
-                                .font(StrandFont.subhead)
-                                .foregroundStyle(StrandPalette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
+            StrandCard(padding: NoopMetrics.cardPadding) {
+                VStack(alignment: .leading, spacing: NoopMetrics.space3) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
+                        if i > 0 { Divider().overlay(StrandPalette.hairline) }
+                        HStack(alignment: .top, spacing: NoopMetrics.space3) {
+                            Image(systemName: r.icon)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(r.icon == "moon.stars.fill" ? StrandPalette.restLine : StrandPalette.accent)
+                                .frame(width: 24)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(verbatim: r.title)
+                                    .font(StrandFont.subhead.weight(.semibold))
+                                    .foregroundStyle(StrandPalette.textPrimary)
+                                Text(r.detail.coachInline)
+                                    .font(StrandFont.subhead)
+                                    .foregroundStyle(StrandPalette.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
-                        Spacer(minLength: 0)
+                        .accessibilityElement(children: .combine)
                     }
                 }
             }
@@ -330,48 +336,6 @@ struct CoachHomeView: View {
         return ["bolt.fill", "heart.fill", "star.fill"][index % 3]
     }
 
-    private func watchCard(_ items: [String]) -> some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-            Text("Watch").strandOverline()
-            StrandCard(padding: NoopMetrics.cardPadding) {
-                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                    ForEach(items, id: \.self) { w in
-                        HStack(alignment: .top, spacing: NoopMetrics.space2) {
-                            Image(systemName: "eye.fill")
-                                .font(.system(size: 12))
-                                .foregroundStyle(StrandPalette.metricAmber)
-                                .padding(.top, 3)
-                                .accessibilityHidden(true)
-                            Text(w.coachInline)
-                                .font(StrandFont.subhead)
-                                .foregroundStyle(StrandPalette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func tonightCard(_ text: String) -> some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-            Text("Tonight").strandOverline()
-            StrandCard(padding: NoopMetrics.cardPadding) {
-                HStack(alignment: .top, spacing: NoopMetrics.space3) {
-                    Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(StrandPalette.restLine)
-                        .frame(width: 28)
-                        .accessibilityHidden(true)
-                    Text(text.coachInline)
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
     private func weekCard(_ g: CoachGlance) -> some View {
         VStack(alignment: .leading, spacing: NoopMetrics.space2) {
             Text("Charge, last 7 days").strandOverline()
@@ -384,10 +348,10 @@ struct CoachHomeView: View {
                                 if let c = d.charge {
                                     RoundedRectangle(cornerRadius: 5)
                                         .fill(StrandPalette.chargeColor.opacity(0.35 + 0.65 * min(max(c, 0), 100) / 100))
-                                        .frame(height: max(6, 64 * min(max(c, 0), 100) / 100))
+                                        .frame(height: max(5, 40 * min(max(c, 0), 100) / 100))
                                 }
                             }
-                            .frame(height: 64)
+                            .frame(height: 40)
                             Text(verbatim: c(d.charge))
                                 .font(StrandFont.caption)
                                 .foregroundStyle(StrandPalette.textSecondary)
@@ -549,13 +513,19 @@ private struct StatColumn: View {
                 .font(StrandFont.caption)
                 .foregroundStyle(StrandPalette.textSecondary)
             if let t = stat.deltaText {
-                Text(verbatim: t)
+                Text(verbatim: Self.arrow(stat.delta) + t.trimmingCharacters(in: CharacterSet(charactersIn: "+-−")))
                     .font(StrandFont.caption.weight(.medium))
                     .foregroundStyle(color)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    /// ▲ above usual, ▼ below, nothing when it is the usual.
+    private static func arrow(_ d: Double?) -> String {
+        guard let d, abs(d) >= 0.5 else { return "" }
+        return d > 0 ? "▲ " : "▼ "
     }
 
     private var color: Color {
