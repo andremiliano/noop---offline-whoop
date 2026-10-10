@@ -259,6 +259,7 @@ targets:
               CFBundleIconFiles: []
               UIPrerenderedIcon: false
         NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:

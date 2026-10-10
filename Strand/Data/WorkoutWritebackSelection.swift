@@ -11,16 +11,28 @@ import WhoopStore
 /// many times. One session, one Health workout.
 enum WorkoutWritebackSelection {
 
-    /// One row per start time. A row the wearer or an import named (anything but an auto-detected bout)
-    /// beats a detected one; then the longer session wins; on a tie the later row in `rows` wins, which
-    /// is the order the caller already used (computed first, then the store's own rows).
+    /// One row per session. Rows that overlap by at least half of the shorter one are the same session
+    /// (an in-app row and a strap-detected bout seconds apart, a relabelled copy), whatever their start
+    /// times. A row the wearer or an import named (anything but an auto-detected bout) beats a detected
+    /// one; then the longer session wins; on a tie the later row in `rows` wins, which is the order the
+    /// caller already used (computed first, then the store's own rows).
     static func onePerStart(_ rows: [WorkoutRow]) -> [WorkoutRow] {
-        var byStart: [Int: WorkoutRow] = [:]
-        for row in rows {
-            if let current = byStart[row.startTs], !prefers(row, over: current) { continue }
-            byStart[row.startTs] = row
+        var clusters: [WorkoutRow] = []   // the winner so far of each cluster
+        for row in rows.sorted(by: { $0.startTs < $1.startTs }) {
+            if let i = clusters.firstIndex(where: { sameSession($0, row) }) {
+                if prefers(row, over: clusters[i]) { clusters[i] = row }
+            } else {
+                clusters.append(row)
+            }
         }
-        return byStart.values.sorted { $0.startTs < $1.startTs }
+        return clusters.sorted { $0.startTs < $1.startTs }
+    }
+
+    private static func sameSession(_ a: WorkoutRow, _ b: WorkoutRow) -> Bool {
+        if a.startTs == b.startTs { return true }
+        let overlap = min(a.endTs, b.endTs) - max(a.startTs, b.startTs)
+        let shorter = min(a.endTs - a.startTs, b.endTs - b.startTs)
+        return overlap > 0 && shorter > 0 && Double(overlap) >= 0.5 * Double(shorter)
     }
 
     private static func prefers(_ a: WorkoutRow, over b: WorkoutRow) -> Bool {
@@ -57,8 +69,9 @@ struct WorkoutWritebackPlan: Equatable {
         let endTs: Double
     }
 
-    /// An end time this close to the stored one is the same session.
-    static let endTolerance = 60.0
+    /// Start and end times this close to the stored ones are the same session: a detected bout's edges move
+    /// by seconds as more data arrives, and that alone must not cost a new Health object.
+    static let timeTolerance = 120.0
     /// A workout that ended less than this long before the write is treated as possibly still running.
     static let settleSeconds = 600
 
@@ -75,12 +88,12 @@ struct WorkoutWritebackPlan: Equatable {
         for (i, row) in rows.enumerated() {
             let pending = row.endTs > now - settleSeconds
             let match = existing.first { w in
-                guard !kept.contains(w.id), w.key == row.key else { return false }
+                guard !kept.contains(w.id) else { return false }
+                let sameStart = abs(w.startTs - Double(row.startTs)) < timeTolerance
                 // A running workout keeps whatever copy it has (nothing is written until it settles), so
                 // its moving end time and growing totals never cost a new Health object per sync.
-                if pending { return true }
-                return abs(w.startTs - Double(row.startTs)) < 1
-                    && abs(w.endTs - Double(row.endTs)) < endTolerance
+                if pending { return w.key == row.key || sameStart }
+                return sameStart && abs(w.endTs - Double(row.endTs)) < timeTolerance
                     && (w.signature == nil || w.signature == row.signature)
             }
             if let match { kept.insert(match.id) } else if !pending { toWrite.append(i) }

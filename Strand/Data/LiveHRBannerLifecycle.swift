@@ -33,11 +33,15 @@ enum LiveHRBannerLifecycle {
     /// `showing`: a banner exists, started `age` ago (nil when NOOP does not know, which counts as old).
     /// `standsAside`: the Lift Log banner is on screen. `linkUp`: the strap is connected. `appActive`: NOOP is on
     /// screen, the only time iOS lets it start a banner.
+    ///
+    /// `workoutActive`: a workout started in the app is running. It is a reason to start the banner by itself,
+    /// strap connected or not: its clock needs no strap, and a strap held by another app or out of reach must not
+    /// leave a workout without its Lock Screen timer.
     static func step(switchOn: Bool, standsAside: Bool, linkUp: Bool, showing: Bool, age: TimeInterval?,
-                     appActive: Bool) -> Step {
+                     appActive: Bool, workoutActive: Bool = false) -> Step {
         guard switchOn, !standsAside else { return showing ? .end : .nothing }
         if showing { return appActive && (age ?? .infinity) >= renewAfter ? .renew : .push }
-        return linkUp && appActive ? .start : .nothing
+        return (linkUp || workoutActive) && appActive ? .start : .nothing
     }
 
     /// Where a banner iOS lists for NOOP stands, in the terms `removes` needs (ActivityKit's `ActivityState`, which

@@ -73,8 +73,16 @@ final class WorkoutWritebackPlanTests: XCTestCase {
 
     func testEndShiftedPastToleranceRewrites() {
         let c = copy(1000, 4000)
-        XCTAssertEqual(P.plan(rows: [row(1000, 4030)], existing: [c], now: now).toWrite, [])
-        XCTAssertEqual(P.plan(rows: [row(1000, 4100)], existing: [c], now: now).toWrite, [0])
+        XCTAssertEqual(P.plan(rows: [row(1000, 4090)], existing: [c], now: now).toWrite, [])
+        XCTAssertEqual(P.plan(rows: [row(1000, 4300)], existing: [c], now: now).toWrite, [0])
+    }
+
+    /// A start that moved by seconds is the same session, so it costs no new Health object.
+    func testStartDriftWithinToleranceKeepsTheCopy() {
+        let c = copy(1000, 4000)
+        let plan = P.plan(rows: [row(1040, 4000)], existing: [c], now: now)
+        XCTAssertEqual(plan.toWrite, [])
+        XCTAssertEqual(plan.kept, [c.id])
     }
 
     func testExtraCopiesOfOneSessionAreStale() {
@@ -97,5 +105,40 @@ final class WorkoutWritebackPlanTests: XCTestCase {
         let plan = P.plan(rows: [row(now - 3000, recent, sig: "run|900|0")], existing: [c], now: now)
         XCTAssertEqual(plan.toWrite, [])
         XCTAssertEqual(plan.stale, [])
+    }
+}
+
+final class WorkoutOverlapSelectionTests: XCTestCase {
+    private func wr(_ start: Int, _ end: Int, sport: String = "HIIT", source: String) -> WorkoutRow {
+        WorkoutRow(startTs: start, endTs: end, sport: sport, source: source, durationS: Double(end - start),
+                   energyKcal: 500, avgHr: nil, maxHr: nil, strain: nil, distanceM: nil,
+                   zonesJSON: nil, notes: nil, steps: nil)
+    }
+
+    /// An in-app row and a strap-detected bout whose starts differ by seconds are one session.
+    func testOverlappingRowsWithDifferentStartsAreOneSession() {
+        let rows = WorkoutWritebackSelection.onePerStart([
+            wr(1040, 3800, source: "my-whoop-noop"),
+            wr(1000, 3840, sport: "Run", source: "manual"),
+        ])
+        XCTAssertEqual(rows.count, 1)
+        XCTAssertEqual(rows[0].startTs, 1000)
+    }
+
+    func testBackToBackWorkoutsStaySeparate() {
+        let rows = WorkoutWritebackSelection.onePerStart([
+            wr(1000, 2000, source: "manual"),
+            wr(2000, 3000, source: "manual"),
+        ])
+        XCTAssertEqual(rows.count, 2)
+    }
+
+    func testShortRowInsideALongOneIsTheSameSession() {
+        let rows = WorkoutWritebackSelection.onePerStart([
+            wr(1000, 4000, source: "manual"),
+            wr(1500, 1800, source: "my-whoop-noop"),
+        ])
+        XCTAssertEqual(rows.count, 1)
+        XCTAssertEqual(rows[0].startTs, 1000)
     }
 }

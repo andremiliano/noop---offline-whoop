@@ -7,9 +7,18 @@ final class LiveHRBannerLifecycleTests: XCTestCase {
 
     private func step(switchOn: Bool = true, standsAside: Bool = false, linkUp: Bool = true,
                       showing: Bool = true, age: TimeInterval? = 60,
-                      appActive: Bool = false) -> LiveHRBannerLifecycle.Step {
+                      appActive: Bool = false, workoutActive: Bool = false) -> LiveHRBannerLifecycle.Step {
         LiveHRBannerLifecycle.step(switchOn: switchOn, standsAside: standsAside, linkUp: linkUp,
-                                   showing: showing, age: age, appActive: appActive)
+                                   showing: showing, age: age, appActive: appActive, workoutActive: workoutActive)
+    }
+
+    /// A workout started in the app starts the banner on its own: its clock needs no strap link.
+    func testWorkoutStartsTheBannerWithoutTheStrapLink() {
+        XCTAssertEqual(step(linkUp: false, showing: false, appActive: true, workoutActive: true), .start)
+        XCTAssertEqual(step(linkUp: false, showing: false, appActive: true, workoutActive: false), .nothing)
+        // Still only while NOOP is on screen, and never against the switch.
+        XCTAssertEqual(step(linkUp: false, showing: false, appActive: false, workoutActive: true), .nothing)
+        XCTAssertEqual(step(switchOn: false, linkUp: false, showing: false, appActive: true, workoutActive: true), .nothing)
     }
 
     /// A dropped link of any length and a strap that is not measuring show the dash, on screen or not; the number comes
