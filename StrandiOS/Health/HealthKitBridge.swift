@@ -67,6 +67,10 @@ final class HealthKitBridge: ObservableObject {
     @Published private(set) var heartRateWriteStatus: String?
     /// What the last workout write-back did, so a duplicate report can be told apart from stale copies.
     @Published private(set) var workoutWriteStatus: String?
+    /// Every workout Health holds for the last few days, from ALL sources, one line each: who wrote it, when,
+    /// how long, and whether it carries our key. Duplicate reports (Bevel, Strava) are answered by this: it
+    /// says whose copies there are. Also written to Documents/health-workout-audit.txt.
+    @Published private(set) var workoutAudit: [String] = []
 
 
     private let store = HKHealthStore()
@@ -1287,6 +1291,39 @@ final class HealthKitBridge: ObservableObject {
         }
     }
 
+    /// Reads the last `days` days of workouts from every source and records one line each (`workoutAudit`).
+    /// Read-only. Needs read permission for workouts; without it Health returns nothing, which the first
+    /// line says rather than leaving an empty list to be read as "no workouts".
+    func auditWorkouts(days: Int = 4) async {
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        let pred = HKQuery.predicateForSamples(withStart: start, end: Date(), options: [])
+        let workouts: [HKWorkout] = await withCheckedContinuation { (cont: CheckedContinuation<[HKWorkout], Never>) in
+            let q = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: pred,
+                                  limit: HKObjectQueryNoLimit,
+                                  sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]) { _, samples, _ in
+                cont.resume(returning: (samples ?? []).compactMap { $0 as? HKWorkout })
+            }
+            store.execute(q)
+        }
+        let f = DateFormatter()
+        f.dateFormat = "EEE d MMM HH:mm:ss"
+        var lines = ["\(workouts.count) workouts in Health since \(f.string(from: start)) (all sources):"]
+        for w in workouts {
+            let src = w.sourceRevision.source
+            let key = (w.metadata?[HKMetadataKeyExternalUUID] as? String) ?? "-"
+            let sig = (w.metadata?[Self.workoutSignatureKey] as? String) ?? "-"
+            let kcal = w.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()?.doubleValue(for: .kilocalorie())
+            lines.append("\(f.string(from: w.startDate)) -> \(f.string(from: w.endDate)) | type \(w.workoutActivityType.rawValue)"
+                + " | \(src.name) (\(src.bundleIdentifier)) | device \(w.device?.name ?? "-")"
+                + " | \(kcal.map { "\(Int($0.rounded())) kcal" } ?? "no kcal") | key \(key) | sig \(sig) | id \(w.uuid.uuidString.prefix(8))")
+        }
+        workoutAudit = lines
+        if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("health-workout-audit.txt"),
+                                                    atomically: true, encoding: .utf8)
+        }
+    }
+
     private func writeWorkouts(whoopStore: WhoopStore, fromTs: Int, toTs: Int) async throws {
         guard store.authorizationStatus(for: .workoutType()) == .sharingAuthorized else { return }
         // Read result kept OPTIONAL rather than collapsed with `?? []`, because the reconciliation below
@@ -1344,6 +1381,7 @@ final class HealthKitBridge: ObservableObject {
                 removal = "\(staleObjects.count) stale copies left (store read incomplete)"
             }
         }
+        defer { Task { await auditWorkouts() } }
         workoutWriteStatus = "Workouts: \(rows.count) in NOOP, \(existing.count) already in Health, \(plan.toWrite.count) written, \(removal)."
         guard !plan.toWrite.isEmpty else { return }
 

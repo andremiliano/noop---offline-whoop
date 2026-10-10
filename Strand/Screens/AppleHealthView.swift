@@ -475,6 +475,16 @@ struct AppleHealthView: View {
                         .foregroundStyle(StrandPalette.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if !health.workoutAudit.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(health.workoutAudit.enumerated()), id: \.offset) { _, line in
+                            Text(verbatim: line)
+                                .font(StrandFont.footnote)
+                                .foregroundStyle(StrandPalette.textTertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
                 if let w = health.workoutWriteStatus {
                     Text(verbatim: w)
                         .font(StrandFont.footnote)
