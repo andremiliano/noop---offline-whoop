@@ -124,10 +124,14 @@ enum AICoachError: LocalizedError {
     case emptyReply(String)   // #1074: verbatim provider-error / empty-reply text (byte-parity with Android emptyReplyMessage)
     case keySaveFailed
     case badCustomURL(String)
+    /// The model on this device could not answer, or is not available; the text says why.
+    case onDevice(String)
 
     var errorDescription: String? {
         switch self {
         case .badCustomURL(let message):
+            return message
+        case .onDevice(let message):
             return message
         case .noKey:
             return "Add your own API key first to use the coach."
@@ -245,11 +249,28 @@ final class AICoachEngine: ObservableObject {
     /// API. OFF by default and gated behind `dataConsent` too. Only active when the provider is
     /// Gemini (the only provider with multimodal support in the app). When on, the Coach composer
     /// shows an "Attach chart" toggle; the rendered chart is sent as inline_data to Gemini.
+    /// When the chosen cloud provider cannot answer (key rejected, offline, rate limit, server fault) and
+    /// this device has its own model, answer from that instead of failing. ON by default: it sends nothing
+    /// anywhere the wearer had not already chosen to send it, and it keeps the coach usable offline.
+    @Published var fallbackToDevice: Bool {
+        didSet { UserDefaults.standard.set(fallbackToDevice, forKey: Self.fallbackKey) }
+    }
+    /// The brief page's content, how it is going, and where it came from ("On this device", a provider name).
+    @Published var pageBrief: CoachBriefContent?
+    @Published var pageBriefLoading = false
+    @Published var pageBriefError: String?
+    @Published var pageBriefSource: String?
+    @Published var pageBriefDate: Date?
+
+    /// Set when the last answer came from the on-device model because the chosen provider failed; says why.
+    /// Cleared at the start of every send.
+    @Published var fallbackNote: String?
+
     @Published var multimodalChartEnabled: Bool {
         didSet { UserDefaults.standard.set(multimodalChartEnabled, forKey: Self.multimodalChartKey) }
     }
 
-    private let repo: Repository
+    let repo: Repository
     private let session: URLSession
 
     private static let providerKey = "ai.provider"
@@ -258,6 +279,7 @@ final class AICoachEngine: ObservableObject {
     private static let customConnectedKey = "ai.customConnected"
     private static let onDeviceSignalsKey = "ai.includeOnDeviceSignals"
     private static let multimodalChartKey = "ai.multimodalChartEnabled"
+    private static let fallbackKey = "ai.fallbackToDevice"
     /// UserDefaults key holding the user's EDITED system prompt. Absent (or blank) means "use the
     /// built-in default". Small text key, never a secret, so plain UserDefaults is fine. Read FRESH
     /// per request (see `systemPrompt`) so an edit takes effect on the very next message.
@@ -371,8 +393,9 @@ final class AICoachEngine: ObservableObject {
         self.session = session
 
         // Restore persisted provider / model (falling back to sane defaults).
+        // A first run with nothing chosen uses the model on the device when it has one: it needs no key.
         let storedProvider = UserDefaults.standard.string(forKey: Self.providerKey)
-            .flatMap(AIProvider.init(rawValue:)) ?? .openAI
+            .flatMap(AIProvider.init(rawValue:)) ?? (OnDeviceAI.isAvailable ? .onDevice : .openAI)
         self.provider = storedProvider
 
         let storedModel = UserDefaults.standard.string(forKey: Self.modelKey)
@@ -396,6 +419,7 @@ final class AICoachEngine: ObservableObject {
         self.customConnected = UserDefaults.standard.bool(forKey: Self.customConnectedKey)
         self.includeOnDeviceSignals = UserDefaults.standard.bool(forKey: Self.onDeviceSignalsKey)
         self.multimodalChartEnabled = UserDefaults.standard.bool(forKey: Self.multimodalChartKey)
+        self.fallbackToDevice = UserDefaults.standard.object(forKey: Self.fallbackKey) as? Bool ?? true
     }
 
     // MARK: Key management
@@ -406,11 +430,22 @@ final class AICoachEngine: ObservableObject {
     /// True once the coach can actually send: a stored key for the cloud providers, or, for the
     /// Custom (local) provider, a committed base URL (a key is optional there, as local servers
     /// usually need none). Gates the setup card vs. the live chat.
-    var isConfigured: Bool { provider == .custom ? customConnected : hasKey }
+    var isConfigured: Bool {
+        switch provider {
+        case .custom:   return customConnected
+        case .onDevice: return OnDeviceAI.isAvailable
+        default:        return hasKey
+        }
+    }
+
+    /// Whether the wearer's numbers may go into a request: they consented, or the request never leaves the
+    /// device (the on-device model), where there is nothing to consent to.
+    var canUseData: Bool { dataConsent || provider == .onDevice }
 
     /// The key to send with a request: the stored key, or an empty string for the keyless Custom
     /// provider. `nil` means "not configured", the caller surfaces `.noKey`.
     private var resolvedKey: String? {
+        if provider == .onDevice { return "" }
         if let k = AIKeyStore.read() {
             // Only send the stored key to the provider it was SAVED for, never Bearer one provider's
             // key (e.g. a cloud OpenAI/Anthropic secret) to another provider's endpoint, above all the
@@ -558,7 +593,7 @@ final class AICoachEngine: ObservableObject {
     /// Only the LIST moves. The selected model is never changed underneath the user. Kotlin twin:
     /// `CoachViewModel.refreshModelsIfStale`.
     func refreshModelsIfStale() async {
-        guard provider != .custom, hasKey else { return }
+        guard provider != .custom, provider != .onDevice, hasKey else { return }
         let last = UserDefaults.standard.double(forKey: Self.modelsRefreshedKey(provider))
         guard Self.isCatalogueStale(last: last, now: Date().timeIntervalSince1970) else { return }
         await refreshModels(silent: true)
@@ -568,6 +603,7 @@ final class AICoachEngine: ObservableObject {
     /// neither wipe a message the user is still reading nor raise one they never asked for. Kotlin twin:
     /// the `silent` parameter on `CoachViewModel.refreshModels`.
     func refreshModels(silent: Bool = false) async {
+        guard provider != .onDevice else { return }   // the system model has no catalogue
         guard let key = resolvedKey else {
             if !silent { errorText = AICoachError.noKey.errorDescription }
             return
@@ -774,6 +810,7 @@ final class AICoachEngine: ObservableObject {
         conversationDay = Self.localEpochDay()
 
         errorText = nil
+        fallbackNote = nil
         appendMessage(ChatMessage(role: .user, text: trimmed))
         sending = true
         // K2: persist once the turn is fully settled (success, mid-stream error, or empty-stream
@@ -784,7 +821,7 @@ final class AICoachEngine: ObservableObject {
         // full running history so follow-ups stay coherent; the context only needs to ride the
         // earliest user message.
         // Include the user's data ONLY with explicit consent; otherwise send a note instead of numbers.
-        let context = dataConsent ? await buildFullContext() : noConsentNote
+        let context = canUseData ? await buildFullContext() : noConsentNote
         // K13: if the conversation overflows the sliding window, summarize the dropped middle so
         // the model retains context continuity. Best-effort; failure degrades to the old gap.
         await summarizeDroppedMiddleIfNeeded(key: key)
@@ -805,7 +842,7 @@ final class AICoachEngine: ObservableObject {
         var accumulated = ""
 
         do {
-            try await streamProvider(key: key, messages: wire, inlineImage: imageBase64) { delta in
+            try await streamWithFallback(key: key, messages: wire, inlineImage: imageBase64) { delta in
                 accumulated += delta
                 // Replace the last message's text with the accumulated stream so far.
                 if let lastIdx = self.messages.indices.last,
@@ -857,7 +894,7 @@ final class AICoachEngine: ObservableObject {
     /// prescription + one recovery tip, without the user typing. Requires a key + data consent.
     /// K1: streams the brief the same way `send` does.
     func startBriefIfNeeded() async {
-        guard isConfigured, dataConsent, messages.isEmpty, !sending else { return }
+        guard isConfigured, canUseData, messages.isEmpty, !sending else { return }
         guard let key = resolvedKey else { return }
         errorText = nil
         sending = true
@@ -873,7 +910,7 @@ final class AICoachEngine: ObservableObject {
         var accumulated = ""
 
         do {
-            try await streamProvider(key: key, messages: wire) { delta in
+            try await streamWithFallback(key: key, messages: wire) { delta in
                 accumulated += delta
                 if let lastIdx = self.messages.indices.last,
                    self.messages[lastIdx].role == .assistant {
@@ -942,13 +979,101 @@ final class AICoachEngine: ObservableObject {
         // calls, and a caller that skipped the scheduler's own gate would otherwise reach a provider with
         // the AI switched off.
         guard CoachBriefScheduler.coachMasterEnabled else { return nil }
-        guard isConfigured, dataConsent, let key = resolvedKey else { return nil }
+        guard isConfigured, canUseData, let key = resolvedKey else { return nil }
         let context = await buildFullContext()
         let wire: [(role: ChatMessage.Role, content: String)] =
             [(.user, context + "\n\n---\n\n" + Self.briefInstruction)]
-        guard let reply = try? await callProvider(key: key, messages: wire) else { return nil }
+        let reply: String
+        if let r = try? await callProvider(key: key, messages: wire) {
+            reply = r
+        } else if provider != .onDevice, fallbackToDevice, OnDeviceAI.isAvailable,
+                  let r = try? await OnDeviceClient().send(key: "", model: "", systemPrompt: systemPrompt,
+                                                            messages: wire, session: session) {
+            reply = r
+        } else {
+            return nil
+        }
         let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty ? nil : clean
+    }
+
+    // MARK: - The brief page
+
+    /// What the cached brief was written from: the local day and the newest scored day. A sync that adds a
+    /// night changes it; a minute passing does not, so the page opens on the saved brief and regenerates
+    /// only when there is something new to say (or on request).
+    private func briefFingerprint() -> String {
+        let last = repo.days.last
+        return "\(Self.localEpochDay())|\(last?.day ?? "-")|\(last?.recovery.map { Int($0.rounded()) } ?? -1)"
+            + "|\(last?.totalSleepMin.map { Int($0.rounded()) } ?? -1)|\(provider.rawValue)"
+    }
+
+    /// Fills `pageBrief`: from the saved copy when it is current, else by asking the model. Prefers the
+    /// chosen provider and falls back to the on-device model when that cannot answer, so the page works
+    /// with a bad key, offline, or with no key at all.
+    func loadPageBrief(force: Bool = false) async {
+        guard CoachBriefScheduler.coachMasterEnabled, !pageBriefLoading else { return }
+        let fp = briefFingerprint()
+        if !force, let cached = CoachBriefCache.load(), cached.fingerprint == fp {
+            pageBrief = cached.content
+            pageBriefSource = cached.source
+            pageBriefDate = cached.generatedAt
+            pageBriefError = nil
+            return
+        }
+        // Where it can be written: the chosen provider when it is set up and may see the data, else the device.
+        let useCloud = provider != .onDevice && isConfigured && dataConsent
+        guard useCloud || OnDeviceAI.isAvailable else {
+            pageBriefError = provider == .onDevice || !isConfigured
+                ? ({ if case .unavailable(let why) = OnDeviceAI.status { return why + " Or add an API key in Coach settings." }
+                     return "Add an API key in Coach settings, or turn on Apple Intelligence." })()
+                : "Turn on \"Let the coach use my data\" in Coach settings to write your brief."
+            return
+        }
+        pageBriefLoading = true
+        pageBriefError = nil
+        defer { pageBriefLoading = false }
+
+        let context = await buildFullContext()
+        var content: CoachBriefContent?
+        var source = OnDeviceAI.isAvailable && !useCloud ? "On this device" : provider.displayName
+        var failure: AICoachError?
+
+        if useCloud, let key = resolvedKey {
+            do {
+                let wire: [(role: ChatMessage.Role, content: String)] =
+                    [(.user, context + "\n\n---\n\n" + CoachBriefContent.jsonInstruction)]
+                let reply = try await callProvider(key: key, messages: wire)
+                let parsed = CoachBriefContent.parse(reply)
+                if !parsed.isEmpty { content = parsed }
+            } catch let e as AICoachError {
+                failure = e
+            } catch {
+                failure = .network(error.localizedDescription)
+            }
+        }
+        if content == nil, OnDeviceAI.isAvailable, !useCloud || fallbackToDevice {
+            do {
+                content = try await OnDeviceBrief.generate(context: context, systemPrompt: systemPrompt)
+                source = "On this device"
+                if let failure {
+                    fallbackNote = Self.fallbackExplanation(for: failure, providerName: provider.displayName)
+                }
+            } catch let e as AICoachError {
+                failure = failure ?? e
+            } catch {
+                failure = failure ?? .onDevice(error.localizedDescription)
+            }
+        }
+        guard let content, !content.isEmpty else {
+            pageBriefError = failure?.errorDescription ?? "The brief could not be written. Try again."
+            return
+        }
+        let now = Date()
+        pageBrief = content
+        pageBriefSource = source
+        pageBriefDate = now
+        CoachBriefCache(fingerprint: fp, source: source, generatedAt: now, content: content).save()
     }
 
     /// Full data context = the metrics summary + recent workouts (+ an OPT-IN on-device-signals summary
@@ -1040,6 +1165,45 @@ final class AICoachEngine: ObservableObject {
         }
 
         return lines.joined(separator: "\n")
+    }
+
+    /// Whether a failure is one the on-device model can stand in for: the provider could not answer. A
+    /// missing question, an unusable URL or a Keychain fault are the wearer's to fix and stay errors.
+    nonisolated static func shouldFallBack(to error: AICoachError) -> Bool {
+        switch error {
+        case .badKey, .rateLimited, .server, .network, .decode, .emptyReply: return true
+        case .noKey, .emptyQuestion, .keySaveFailed, .badCustomURL, .onDevice: return false
+        }
+    }
+
+    /// The line shown above an answer the on-device model gave because the chosen provider could not.
+    nonisolated static func fallbackExplanation(for error: AICoachError, providerName: String) -> String {
+        switch error {
+        case .badKey: return "\(providerName) rejected your key, so this answer came from the model on your device. Update the key in Coach settings."
+        case .rateLimited: return "\(providerName) is rate-limiting requests, so this answer came from the model on your device."
+        case .network: return "\(providerName) could not be reached, so this answer came from the model on your device."
+        default: return "\(providerName) could not answer, so this answer came from the model on your device."
+        }
+    }
+
+    /// `streamProvider`, with the device's own model as the backup. Only before the first word arrives: an
+    /// answer that broke off mid-way keeps what it had, since two voices in one reply would be worse.
+    private func streamWithFallback(key: String,
+                                    messages: [(role: ChatMessage.Role, content: String)],
+                                    inlineImage: String? = nil,
+                                    onDelta: (String) -> Void) async throws {
+        var received = false
+        do {
+            try await streamProvider(key: key, messages: messages, inlineImage: inlineImage) {
+                received = true
+                onDelta($0)
+            }
+        } catch let e as AICoachError where !received && provider != .onDevice && fallbackToDevice
+                                            && OnDeviceAI.isAvailable && Self.shouldFallBack(to: e) {
+            fallbackNote = Self.fallbackExplanation(for: e, providerName: provider.displayName)
+            try await OnDeviceClient().stream(key: "", model: "", systemPrompt: systemPrompt, messages: messages,
+                                              session: session, onDelta: onDelta)
+        }
     }
 
     /// Dispatch to the user's chosen provider client.

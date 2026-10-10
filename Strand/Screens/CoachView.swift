@@ -66,6 +66,12 @@ struct CoachView: View {
                        topBackground: liquidScaffoldSky()) {
             if coach.isConfigured {
                 connectedHeader
+                if let note = coach.fallbackNote {
+                    Label(note, systemImage: "iphone")
+                        .font(StrandFont.caption)
+                        .foregroundStyle(StrandPalette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 transcript
                 if let error = coach.errorText, !error.isEmpty {
                     errorBanner(error)
@@ -164,7 +170,6 @@ struct CoachView: View {
                 coach.surfaceScheduledBrief(stored)
             }
             CoachBriefScheduler.activateIfEnabled { await coach.generateBrief() }
-            await coach.startBriefIfNeeded()
         }
         // #1862: a question handed over by the Today launcher sheet. Cleared BEFORE sending so a view
         // rebuild mid-flight cannot send it twice, and gated on `isConfigured` so an unconfigured handoff
@@ -189,9 +194,6 @@ struct CoachView: View {
         // A consent toggle AFTER the initial load re-checks the brief (the original `.task(id:)`
         // behaviour); the guard inside `startBriefIfNeeded` (messages.isEmpty) keeps this a no-op once
         // a conversation exists.
-        .onChangeCompat(of: coach.dataConsent) { _ in
-            Task { await coach.startBriefIfNeeded() }
-        }
     }
 
     // MARK: - Setup (no key yet)
@@ -222,7 +224,7 @@ struct CoachView: View {
                         }
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.menu)
                     .accessibilityLabel("Provider")
                 }
 
@@ -395,7 +397,9 @@ struct CoachView: View {
 
     private var connectedHeader: some View {
         HStack(spacing: 10) {
-            StatePill("\(coach.provider.displayName) · \(coach.model)", tone: .accent, showsDot: true)
+            StatePill(coach.model.isEmpty ? LocalizedStringKey(coach.provider.displayName)
+                      : LocalizedStringKey("\(coach.provider.displayName) · \(coach.model)"),
+                      tone: .accent, showsDot: true)
             Spacer()
             if coach.sending {
                 StatePill("Thinking", tone: .accent, pulsing: true)

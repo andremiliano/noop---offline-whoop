@@ -77,9 +77,11 @@ struct CoachSettingsView: View {
         NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("\(coach.provider.displayName) · \(coach.model)")
+                    Text(verbatim: coach.model.isEmpty ? coach.provider.displayName
+                         : "\(coach.provider.displayName) · \(coach.model)")
                         .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
                     Spacer(minLength: 8)
+                    if coach.provider != .onDevice {
                     Button {
                         Task { await coach.refreshModels() }
                     } label: {
@@ -91,7 +93,9 @@ struct CoachSettingsView: View {
                     .foregroundStyle(StrandPalette.accent)
                     .disabled(!coach.hasKey)
                     .accessibilityLabel("Refresh models from provider")
+                    }
                 }
+                if coach.provider != .onDevice {
                 Picker("Model", selection: $coach.model) {
                     ForEach(coach.availableModels, id: \.self) { m in
                         Text(m).tag(m)
@@ -100,6 +104,10 @@ struct CoachSettingsView: View {
                 .labelsHidden()
                 .pickerStyle(.menu)
                 .accessibilityLabel("Model")
+                }
+                Toggle("Use this device when the provider cannot answer", isOn: $coach.fallbackToDevice)
+                    .font(StrandFont.footnote)
+                    .tint(StrandPalette.accent)
             }
         }
     }

@@ -435,7 +435,7 @@ struct RootView: View {
         case .today: todayDetail
         case .intelligence: IntelligenceView()
         case .insightsHub: InsightsHubView()
-        case .coach: CoachView()
+        case .coach: CoachHomeView()
         case .live: liveDetail
         case .breathe: BreathingView()
         case .intervals: IntervalTimerView()
