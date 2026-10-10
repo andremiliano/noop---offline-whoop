@@ -138,24 +138,24 @@ struct OnDeviceClient: AIProviderClient {
 @available(iOS 26.0, macOS 26.0, *)
 @Generable
 private struct GeneratedBriefAction {
-    @Guide(description: "One to three words naming the action, such as Train, Recover or Fuel.")
+    @Guide(description: "One or two words naming the action, such as Train, Recover or Fuel. Plain text.")
     var title: String
-    @Guide(description: "One short sentence with a concrete action for today, citing a number from the data.")
+    @Guide(description: "One short sentence with a concrete action for today. Plain text, no asterisks.")
     var detail: String
 }
 
 @available(iOS 26.0, macOS 26.0, *)
 @Generable
 private struct GeneratedBrief {
-    @Guide(description: "The one thing to know today, under ten words.")
+    @Guide(description: "A verdict in plain words, under eight words, with no numbers. Plain text.")
     var headline: String
-    @Guide(description: "One or two sentences on readiness that cite charge, HRV and rest from the data.")
+    @Guide(description: "One sentence on why, citing at most two numbers from the data. Plain text, no asterisks.")
     var readiness: String
     @Guide(description: "Two or three actions for today.", .count(2...3))
     var today: [GeneratedBriefAction]
-    @Guide(description: "Up to three short things to watch, each under twelve words.", .count(0...3))
+    @Guide(description: "Up to three short things that moved against the usual, each under twelve words, not repeating the actions. Plain text.", .count(0...3))
     var watch: [String]
-    @Guide(description: "One sentence about tonight's sleep.")
+    @Guide(description: "One sentence about tonight's sleep. Plain text.")
     var tonight: String
 }
 #endif
@@ -171,7 +171,7 @@ enum OnDeviceBrief {
             let session = LanguageModelSession(instructions: fitted.system)
             do {
                 let reply = try await session.respond(
-                    to: fitted.transcript + "\n\nWrite today's coaching brief from this data.",
+                    to: fitted.transcript + "\n\nWrite today's coaching brief from this data. Plain text only, no Markdown or asterisks. Do not repeat the same number in more than one field.",
                     generating: GeneratedBrief.self)
                 let g = reply.content
                 return CoachBriefContent(

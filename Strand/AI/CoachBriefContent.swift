@@ -20,12 +20,13 @@ struct CoachBriefContent: Codable, Equatable {
 
     /// Asked of a network provider after the data context.
     static let jsonInstruction = """
-    Write today's coaching brief as ONE JSON object and nothing else (no Markdown, no code fence), with \
-    exactly these keys: "headline" (under 10 words, the one thing to know today), "readiness" (one or two \
-    sentences citing my charge, HRV and rest), "today" (an array of 2 or 3 objects, each with "title" of \
-    one to three words such as "Train", "Recover" or "Fuel" and "detail" of one short sentence with a \
-    concrete action), "watch" (an array of up to 3 short strings), and "tonight" (one sentence about \
-    tonight's sleep). Cite my actual numbers; a dash in the data means not measured, not zero.
+    Write today's coaching brief as ONE JSON object and nothing else (no code fence), with exactly these \
+    keys: "headline" (under 8 words: a verdict in plain words, no numbers), "readiness" (one sentence on \
+    why, citing at most two numbers), "today" (an array of 2 or 3 objects, each with "title" of one or \
+    two words such as "Train", "Recover" or "Fuel" and "detail" of one short sentence with a concrete \
+    action), "watch" (an array of up to 3 short strings naming what moved against my usual, not repeating \
+    the actions), and "tonight" (one sentence about tonight's sleep). Plain text only: no Markdown, no \
+    asterisks. A dash in the data means not measured, not zero.
     """
 
     /// Reads a provider's reply. Tolerates prose or a code fence around the object.
@@ -57,6 +58,30 @@ struct CoachBriefContent: Codable, Equatable {
 
 private extension String {
     var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
+}
+
+extension String {
+    /// Model text for a `Text`: inline Markdown (bold numbers) drawn rather than shown as asterisks, and any
+    /// stray markers that do not form a pair removed, so no `**` ever reaches the screen.
+    var coachInline: AttributedString {
+        let opts = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        if var parsed = try? AttributedString(markdown: self, options: opts) {
+            // A lone `*` or `#` that stayed literal is noise from a model, not content.
+            let plain = String(parsed.characters)
+            if !plain.contains("*") { return parsed }
+            for run in parsed.runs.reversed() {
+                let text = String(parsed[run.range].characters)
+                if text.contains("*") {
+                    parsed.replaceSubrange(run.range, with: AttributedString(text.replacingOccurrences(of: "*", with: "")))
+                }
+            }
+            return parsed
+        }
+        return AttributedString(replacingOccurrences(of: "*", with: ""))
+    }
+
+    /// The same text with Markdown markers removed, for places that cannot draw them (a headline in a pill).
+    var coachPlain: String { String(coachInline.characters) }
 }
 
 /// The brief as it was last generated, kept so the page opens at once and only regenerates when the data

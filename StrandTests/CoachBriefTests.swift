@@ -96,5 +96,22 @@ final class CoachBriefTests: XCTestCase {
         XCTAssertNil(g.stats.first { $0.id == "hrv" }?.deltaText)
     }
 
+    func testGlanceCarriesTheEffortTargetForTodaysCharge() throws {
+        let g = try XCTUnwrap(CoachGlance.make(from: [day("2026-10-01", recovery: 85, strain: 40)]))
+        XCTAssertNotNil(g.effortTarget)
+        XCTAssertEqual(g.effort, 40)
+        XCTAssertEqual(g.effortMax, 100)
+        XCTAssertNil(try XCTUnwrap(CoachGlance.make(from: [day("2026-10-01", recovery: nil, strain: 40)])).effortTarget)
+    }
+
+    // MARK: Model text on screen
+
+    func testMarkdownMarkersNeverReachTheScreen() {
+        XCTAssertEqual("**Charge 53** is low".coachPlain, "Charge 53 is low")
+        XCTAssertEqual("Drink **1.5L** — your **active energy is 2211kcal**".coachPlain, "Drink 1.5L — your active energy is 2211kcal")
+        XCTAssertFalse("a * b ** c".coachPlain.contains("*"))
+        XCTAssertEqual("plain".coachPlain, "plain")
+    }
+
     func testNoDaysIsNoGlance() { XCTAssertNil(CoachGlance.make(from: [])) }
 }

@@ -20,11 +20,15 @@ struct CoachGlance: Equatable {
 
     let day: String
     let charge: Double?
+    /// Today's Effort on the wearer's scale, and the band to aim for given today's Charge; nil without Charge.
+    let effort: Double?
+    let effortTarget: ClosedRange<Double>?
+    let effortMax: Double
     let stats: [Stat]
     /// Charge for the last seven days, oldest first; nil where unscored.
     let week: [(day: String, charge: Double?)]
 
-    static func make(from days: [DailyMetric]) -> CoachGlance? {
+    static func make(from days: [DailyMetric], scale: EffortScale = .hundred) -> CoachGlance? {
         guard let last = days.last else { return nil }
         let prior = Array(days.dropLast().suffix(14))
         func avg(_ f: (DailyMetric) -> Double?) -> Double? {
@@ -43,8 +47,9 @@ struct CoachGlance: Equatable {
                         higherIsBetter: higherIsBetter)
         }
         let stats = [
-            stat("effort", "Effort", last.strain, format: { String(format: "%.1f", $0) },
-                 baseline: avg { $0.strain }, unit: ""),
+            stat("effort", "Effort", last.strain.map { UnitFormatter.effortValue($0, scale: scale) },
+                 format: { String(format: scale == .whoop ? "%.1f" : "%.0f", $0) },
+                 baseline: avg { $0.strain.map { UnitFormatter.effortValue($0, scale: scale) } }, unit: ""),
             stat("rest", "Sleep", last.totalSleepMin.map { $0 / 60 },
                  format: { String(format: "%.1fh", $0) },
                  baseline: avg { $0.totalSleepMin.map { $0 / 60 } }, unit: "h"),
@@ -54,11 +59,15 @@ struct CoachGlance: Equatable {
                  baseline: avg { $0.restingHr.map(Double.init) }, unit: "", higherIsBetter: false),
         ].compactMap { $0 }
         let week = days.suffix(7).map { (day: $0.day, charge: $0.recovery) }
-        return CoachGlance(day: last.day, charge: last.recovery, stats: stats, week: week)
+        return CoachGlance(day: last.day, charge: last.recovery,
+                           effort: last.strain.map { UnitFormatter.effortValue($0, scale: scale) },
+                           effortTarget: EffortTarget.band(charge: last.recovery, scale: scale),
+                           effortMax: EffortTarget.axisMax(scale), stats: stats, week: week)
     }
 
     static func == (a: CoachGlance, b: CoachGlance) -> Bool {
-        a.day == b.day && a.charge == b.charge && a.stats == b.stats
+        a.day == b.day && a.charge == b.charge && a.effort == b.effort && a.effortTarget == b.effortTarget
+            && a.stats == b.stats
             && a.week.map(\.day) == b.week.map(\.day) && a.week.map(\.charge) == b.week.map(\.charge)
     }
 }
@@ -75,7 +84,10 @@ struct CoachHomeView: View {
 
     @State private var showChat = false
 
-    private var glance: CoachGlance? { CoachGlance.make(from: repo.days) }
+    @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.hundred.rawValue
+    private var glance: CoachGlance? {
+        CoachGlance.make(from: repo.days, scale: UnitPrefs.resolveEffortScale(effortScaleRaw))
+    }
 
     var body: some View {
         ScreenScaffold(title: "Coach",
@@ -84,7 +96,9 @@ struct CoachHomeView: View {
                        topBackground: liquidScaffoldSky()) {
             VStack(alignment: .leading, spacing: NoopMetrics.gap) {
                 sourceBar
+                if let note = coach.fallbackNote { fallbackBanner(note) }
                 hero
+                if let g = glance, let target = g.effortTarget { targetCard(g, target) }
                 if coach.pageBriefLoading && coach.pageBrief == nil { writing }
                 if let error = coach.pageBriefError, coach.pageBrief == nil { problem(error) }
                 if let brief = coach.pageBrief {
@@ -92,7 +106,6 @@ struct CoachHomeView: View {
                     if !brief.watch.isEmpty { watchCard(brief.watch) }
                     if !brief.tonight.isEmpty { tonightCard(brief.tonight) }
                 }
-                if let note = coach.fallbackNote { fallbackBanner(note) }
                 if let g = glance, g.week.contains(where: { $0.charge != nil }) { weekCard(g) }
                 footer
                 // Room for the bubble.
@@ -101,7 +114,17 @@ struct CoachHomeView: View {
         }
         .overlay(alignment: .bottomTrailing) { askBubble }
         .sheet(isPresented: $showChat) { chatSheet }
-        .task { await coach.loadPageBrief() }
+        .task {
+            // What opening the old chat did: restore the saved conversation, surface a brief the morning
+            // notification already wrote, and arm the next scheduled one.
+            await coach.loadPersistedMessagesIfNeeded()
+            coach.retireStaleConversationIfNeeded()
+            if coach.messages.isEmpty, let stored = CoachBriefScheduler.consumeStoredBrief() {
+                coach.surfaceScheduledBrief(stored)
+            }
+            CoachBriefScheduler.activateIfEnabled { await coach.generateBrief() }
+            await coach.loadPageBrief()
+        }
         // A question handed over by the Today launcher: the chat is where it is sent.
         .task(id: coach.pendingPrompt) {
             if coach.pendingPrompt?.isEmpty == false { showChat = true }
@@ -188,12 +211,12 @@ struct CoachHomeView: View {
                     ChargeRing(value: glance?.charge)
                         .frame(width: 84, height: 84)
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(verbatim: coach.pageBrief?.headline.nonEmpty ?? Self.dayTitle(glance?.charge))
+                        Text(verbatim: coach.pageBrief?.headline.coachPlain.nonEmpty ?? Self.dayTitle(glance?.charge))
                             .font(StrandFont.headline)
                             .foregroundStyle(StrandPalette.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                         if let r = coach.pageBrief?.readiness, !r.isEmpty {
-                            Text(verbatim: r)
+                            Text(r.coachInline)
                                 .font(StrandFont.subhead)
                                 .foregroundStyle(StrandPalette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -205,6 +228,9 @@ struct CoachHomeView: View {
                     HStack(alignment: .top, spacing: 0) {
                         ForEach(stats) { StatColumn(stat: $0) }
                     }
+                    Text("Compared with your usual over the last 14 days")
+                        .font(StrandFont.caption)
+                        .foregroundStyle(StrandPalette.textTertiary)
                 }
             }
         }
@@ -222,6 +248,52 @@ struct CoachHomeView: View {
 
     // MARK: Sections
 
+    /// How hard to go today, from today's Charge: the band to aim for and where the day stands in it.
+    private func targetCard(_ g: CoachGlance, _ band: ClosedRange<Double>) -> some View {
+        let digits = UnitPrefs.resolveEffortScale(effortScaleRaw) == .whoop ? 1 : 0
+        func n(_ v: Double) -> String { String(format: "%.\(digits)f", v) }
+        let now = g.effort ?? 0
+        let state: String = {
+            guard g.effort != nil else { return String(localized: "Not started yet") }
+            if now < band.lowerBound {
+                let togo = n(band.lowerBound - now)
+                return String(localized: "\(togo) to go to reach the target")
+            }
+            if now > band.upperBound { return String(localized: "Past the target, ease off") }
+            return String(localized: "In the target range")
+        }()
+        return VStack(alignment: .leading, spacing: NoopMetrics.space2) {
+            Text("Effort target").strandOverline()
+            StrandCard(padding: NoopMetrics.cardPadding) {
+                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(verbatim: "\(n(band.lowerBound)) – \(n(band.upperBound))")
+                            .font(StrandFont.number(24))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Spacer()
+                        Text(verbatim: state)
+                            .font(StrandFont.subhead)
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
+                    GeometryReader { geo in
+                        let w = geo.size.width
+                        let mx = max(g.effortMax, 1)
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(StrandPalette.surfaceInset)
+                            Capsule().fill(StrandPalette.effortColor.opacity(0.28))
+                                .frame(width: w * (band.upperBound - band.lowerBound) / mx)
+                                .offset(x: w * band.lowerBound / mx)
+                            Capsule().fill(StrandPalette.effortColor)
+                                .frame(width: max(8, w * min(now, mx) / mx))
+                        }
+                    }
+                    .frame(height: 10)
+                    .accessibilityHidden(true)
+                }
+            }
+        }
+    }
+
     private func todaySection(_ items: [CoachBriefContent.Action]) -> some View {
         VStack(alignment: .leading, spacing: NoopMetrics.space2) {
             Text("Today").strandOverline()
@@ -234,10 +306,10 @@ struct CoachHomeView: View {
                             .frame(width: 28)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(verbatim: a.title)
+                            Text(verbatim: a.title.coachPlain)
                                 .font(StrandFont.subhead.weight(.semibold))
                                 .foregroundStyle(StrandPalette.textPrimary)
-                            Text(verbatim: a.detail)
+                            Text(a.detail.coachInline)
                                 .font(StrandFont.subhead)
                                 .foregroundStyle(StrandPalette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -270,7 +342,7 @@ struct CoachHomeView: View {
                                 .foregroundStyle(StrandPalette.metricAmber)
                                 .padding(.top, 3)
                                 .accessibilityHidden(true)
-                            Text(verbatim: w)
+                            Text(w.coachInline)
                                 .font(StrandFont.subhead)
                                 .foregroundStyle(StrandPalette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -291,7 +363,7 @@ struct CoachHomeView: View {
                         .foregroundStyle(StrandPalette.restLine)
                         .frame(width: 28)
                         .accessibilityHidden(true)
-                    Text(verbatim: text)
+                    Text(text.coachInline)
                         .font(StrandFont.subhead)
                         .foregroundStyle(StrandPalette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -409,16 +481,23 @@ struct CoachHomeView: View {
     }
 
     private var chatSheet: some View {
-        NavigationStack {
-            CoachView()
-                .environmentObject(coach)
-                .environmentObject(repo)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { showChat = false }
-                    }
+        Group {
+            if coach.isConfigured {
+                CoachChatView(onDone: { showChat = false })
+            } else {
+                // Not set up: the original screen carries the provider and key setup.
+                NavigationStack {
+                    CoachView()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showChat = false }
+                            }
+                        }
                 }
+            }
         }
+        .environmentObject(coach)
+        .environmentObject(repo)
         #if os(macOS)
         .frame(minWidth: 560, minHeight: 680)
         #endif
