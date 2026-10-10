@@ -1308,6 +1308,10 @@ final class HealthKitBridge: ObservableObject {
         let f = DateFormatter()
         f.dateFormat = "EEE d MMM HH:mm:ss"
         var lines = ["\(workouts.count) workouts in Health since \(f.string(from: start)) (all sources):"]
+        if workouts.isEmpty {
+            // Health answers an unreadable type with an empty list, not an error, so zero is ambiguous.
+            lines.append("0 can also mean NOOP may not READ workouts: Health > Sharing > Apps > NOOP, or the phone was locked.")
+        }
         for w in workouts {
             let src = w.sourceRevision.source
             let key = (w.metadata?[HKMetadataKeyExternalUUID] as? String) ?? "-"
@@ -1322,6 +1326,33 @@ final class HealthKitBridge: ObservableObject {
             try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("health-workout-audit.txt"),
                                                     atomically: true, encoding: .utf8)
         }
+    }
+
+    // MARK: Workout ledger
+
+    /// What this app has written to Health, kept on the app's own side: `noop:workout:<start>` -> signature and
+    /// end time. A Health workout is immutable and each write is a new object that readers (Bevel, Strava)
+    /// import as a new activity, so "already written" cannot rest on reading Health back: that read returns an
+    /// empty list, without an error, whenever workout read access is off or the phone is locked, and a write
+    /// path that trusts it writes the same workout again on every sync.
+    private static let workoutLedgerKey = "noop.health.workoutLedger.v1"
+
+    private static func loadWorkoutLedger() -> [String: [String: Double]] {
+        (UserDefaults.standard.dictionary(forKey: workoutLedgerKey) as? [String: [String: Double]]) ?? [:]
+    }
+
+    /// Whether the ledger already holds this row as it would be written now.
+    private static func ledgerCovers(_ entry: [String: Double]?, signatureHash: Double, endTs: Int) -> Bool {
+        guard let entry, entry["sig"] == signatureHash,
+              let end = entry["end"] else { return false }
+        return abs(end - Double(endTs)) < WorkoutWritebackPlan.timeTolerance
+    }
+
+    /// A stable number for a signature string (FNV-1a over UTF-16 units, as the cross-platform keys use).
+    private static func signatureHash(_ s: String) -> Double {
+        var h: UInt64 = 0xcbf29ce484222325
+        for u in s.utf16 { h = (h ^ UInt64(u)) &* 0x100000001b3 }
+        return Double(h % 9_007_199_254_740_991)   // exactly representable
     }
 
     private func writeWorkouts(whoopStore: WhoopStore, fromTs: Int, toTs: Int) async throws {
@@ -1366,6 +1397,24 @@ final class HealthKitBridge: ObservableObject {
                       startTs: $0.startDate.timeIntervalSince1970, endTs: $0.endDate.timeIntervalSince1970)
             },
             now: toTs)
+        // The ledger decides "already written"; the Health read only decides what to delete.
+        var ledger = Self.loadWorkoutLedger()
+        // First run of the ledger: every earlier build rewrote the whole window on each sync, so whatever is
+        // settled in it is already in Health. Record it as written rather than writing it once more, which is
+        // exactly the extra copy a reader would import as a new activity.
+        let seededKey = "noop.health.workoutLedgerSeeded.v1"
+        if !UserDefaults.standard.bool(forKey: seededKey) {
+            let now = Date().timeIntervalSince1970
+            for row in rows where row.endTs <= toTs - WorkoutWritebackPlan.settleSeconds {
+                ledger[key(row)] = ["sig": Self.signatureHash(signature(row)), "end": Double(row.endTs), "at": now]
+            }
+            UserDefaults.standard.set(ledger, forKey: Self.workoutLedgerKey)
+            UserDefaults.standard.set(true, forKey: seededKey)
+        }
+        let writeIdx = plan.toWrite.filter { i in
+            !Self.ledgerCovers(ledger[key(rows[i])], signatureHash: Self.signatureHash(signature(rows[i])),
+                               endTs: rows[i].endTs)
+        }
         let staleObjects = existing.filter { plan.stale.contains($0.uuid) }
         var removal = "0 stale copies"
         if !staleObjects.isEmpty {
@@ -1382,10 +1431,10 @@ final class HealthKitBridge: ObservableObject {
             }
         }
         defer { Task { await auditWorkouts() } }
-        workoutWriteStatus = "Workouts: \(rows.count) in NOOP, \(existing.count) already in Health, \(plan.toWrite.count) written, \(removal)."
-        guard !plan.toWrite.isEmpty else { return }
+        workoutWriteStatus = "Workouts: \(rows.count) in NOOP, \(existing.count) already in Health, \(writeIdx.count) written, \(removal)."
+        guard !writeIdx.isEmpty else { return }
 
-        for row in plan.toWrite.map({ rows[$0] }) {
+        for row in writeIdx.map({ rows[$0] }) {
             let start = Date(timeIntervalSince1970: TimeInterval(row.startTs))
             let end = Date(timeIntervalSince1970: TimeInterval(row.endTs))
             guard end > start else { continue }
@@ -1412,6 +1461,13 @@ final class HealthKitBridge: ObservableObject {
                 if !extras.isEmpty { try await builder.addSamples(extras) }
                 try await builder.endCollection(at: end)
                 let workout = try await builder.finishWorkout()
+                // Recorded the moment Health has it, before the route work below can fail, so that a
+                // failure after this point can never make the next sync write the workout again.
+                ledger[key(row)] = ["sig": Self.signatureHash(signature(row)), "end": Double(row.endTs),
+                                    "at": Date().timeIntervalSince1970]
+                let cutoff = Date().timeIntervalSince1970 - 90 * 86_400
+                ledger = ledger.filter { ($0.value["at"] ?? 0) > cutoff }
+                UserDefaults.standard.set(ledger, forKey: Self.workoutLedgerKey)
 
                 // #2340: workout route write-back. Load the encoded polyline and its original point
                 // measurements from the Apple-only side-store and attach them to the finished workout.
