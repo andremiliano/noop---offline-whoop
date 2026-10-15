@@ -1,6 +1,9 @@
 {
   "sourceLanguage": "en",
   "strings": {
+        "Waiting for heart rate from your strap": { "localizations": {
+          "de": {"stringUnit": {"state": "translated", "value": "Warte auf die Herzfrequenz deines Straps"}}, "es": {"stringUnit": {"state": "translated", "value": "Esperando la frecuencia cardíaca de tu pulsera"}}, "fr": {"stringUnit": {"state": "translated", "value": "En attente de la fréquence cardiaque de ton bracelet"}}, "it": {"stringUnit": {"state": "translated", "value": "In attesa della frequenza cardiaca dalla tua fascia"}}, "pl": {"stringUnit": {"state": "translated", "value": "Czekam na tętno z twojej opaski"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "A aguardar a frequência cardíaca da tua pulseira"}}, "ru": {"stringUnit": {"state": "translated", "value": "Ожидание пульса от вашего браслета"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在等待手环的心率"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在等待手環的心率"}}
+        } },
         "On this device": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Auf diesem Gerät"}}, "es": {"stringUnit": {"state": "translated", "value": "En este dispositivo"}}, "fr": {"stringUnit": {"state": "translated", "value": "Sur cet appareil"}}, "it": {"stringUnit": {"state": "translated", "value": "Su questo dispositivo"}}, "pl": {"stringUnit": {"state": "translated", "value": "Na tym urządzeniu"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Neste dispositivo"}}, "ru": {"stringUnit": {"state": "translated", "value": "На этом устройстве"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "在本设备上"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "在本裝置上"}}
         } },

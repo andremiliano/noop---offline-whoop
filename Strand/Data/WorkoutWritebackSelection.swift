@@ -58,6 +58,8 @@ struct WorkoutWritebackPlan: Equatable {
         let signature: String
         let startTs: Int
         let endTs: Int
+        /// Whether the row may still be growing. Nil asks the plan to judge from the end time alone.
+        var maybeRunning: Bool? = nil
     }
 
     /// One of our workouts already in Health. `signature` is nil for a copy written before signatures existed.
@@ -86,7 +88,7 @@ struct WorkoutWritebackPlan: Equatable {
         var kept = Set<UUID>()
         var toWrite: [Int] = []
         for (i, row) in rows.enumerated() {
-            let pending = row.endTs > now - settleSeconds
+            let pending = row.maybeRunning ?? (row.endTs > now - settleSeconds)
             let match = existing.first { w in
                 guard !kept.contains(w.id) else { return false }
                 let sameStart = abs(w.startTs - Double(row.startTs)) < timeTolerance

@@ -1075,6 +1075,11 @@ final class AppModel: ObservableObject {
             if let store = await self.repo.storeHandle() {
                 _ = try? await store.upsertWorkouts([row], deviceId: self.deviceId)
                 await self.repo.refresh()
+                // Into Apple Health now, not at the next background pass: a workout that has just ended is
+                // final, and waiting for the scheduler is what made it reach Health (and Strava, Bevel) late.
+                #if os(iOS)
+                await self.healthWriteBack?()
+                #endif
             }
         }
     }

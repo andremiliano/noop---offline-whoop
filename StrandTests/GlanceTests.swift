@@ -413,3 +413,12 @@ extension GlanceTests {
         XCTAssertNil(GlanceVO2.zones(age: 34, sex: "nonbinary"))
     }
 }
+
+final class WorkoutZoneTimeTests: XCTestCase {
+    func testText() {
+        XCTAssertEqual(WorkoutZoneTime.text(0), "")
+        XCTAssertEqual(WorkoutZoneTime.text(45), "45s")
+        XCTAssertEqual(WorkoutZoneTime.text(720), "12m")
+        XCTAssertEqual(WorkoutZoneTime.text(3900), "1h05")
+    }
+}

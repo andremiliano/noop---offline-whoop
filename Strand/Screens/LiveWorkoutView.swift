@@ -190,7 +190,7 @@ struct LiveWorkoutView: View {
                     .font(StrandFont.rounded(72, weight: .semibold))
                     .foregroundStyle(tint)
             }
-            Text("bpm")
+            Text(model.bpm == nil ? String(localized: "Waiting for heart rate from your strap") : String(localized: "bpm"))
                 .font(StrandFont.subhead)
                 .foregroundStyle(StrandPalette.textSecondary)
         }
@@ -253,10 +253,12 @@ struct LiveWorkoutView: View {
                     .padding(.vertical, NoopMetrics.space1)
                     .background(tint.opacity(0.12), in: Capsule())
             }
+            let inZone = HRZones.timeInZone(model.activeWorkout?.samples ?? [], zoneSet: zoneSet)
             HStack(spacing: 6) {
                 ForEach(1...5, id: \.self) { z in
                     let active = z == zone
                     let color = StrandPalette.hrZoneColor(z)
+                    VStack(spacing: 4) {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(active ? color : color.opacity(0.18))
                         .frame(height: active ? 44 : 34)
@@ -269,6 +271,13 @@ struct LiveWorkoutView: View {
                                 .font(StrandFont.captionNumber)
                                 .foregroundStyle(active ? StrandPalette.surfaceBase : StrandPalette.textTertiary)
                         )
+                        // Time spent in this zone so far: the one thing the rail could not say.
+                        Text(verbatim: WorkoutZoneTime.text(Int(inZone.seconds(inZone: z).rounded())).isEmpty
+                             ? " " : WorkoutZoneTime.text(Int(inZone.seconds(inZone: z).rounded())))
+                            .font(StrandFont.caption)
+                            .foregroundStyle(StrandPalette.textSecondary)
+                            .monospacedDigit()
+                    }
                 }
             }
             if let band = zoneSet.zones.first(where: { $0.number == zone }) {
@@ -293,8 +302,20 @@ struct LiveWorkoutView: View {
                 statDivider
                 stat(String(localized: "EFFORT"), UnitFormatter.effortDisplay(w?.liveStrain ?? 0, scale: effortScale),
                      tint: StrandPalette.strainColor(w?.liveStrain ?? 0))
+                statDivider
+                // Same estimate the saved workout gets (`endWorkout`), so the number here is the one kept.
+                stat(String(localized: "KCAL"), liveKcal.map { "\($0)" } ?? "—")
             }
         }
+    }
+
+    private var liveKcal: Int? {
+        guard let w = model.activeWorkout, w.samples.count >= 2 else { return nil }
+        let p = model.profile
+        let up = UserProfile(weightKg: p.weightKg, heightCm: p.heightCm, age: Double(p.age), sex: p.sex)
+        let resting = model.repo.today?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR
+        let k = Calories.estimateBoutCalories(w.samples, profile: up, hrmax: Double(p.hrMax), restingHR: resting).0
+        return k > 0 ? Int(k.rounded()) : nil
     }
 
     private func stat(_ title: String, _ value: String, tint: Color = StrandPalette.textPrimary) -> some View {

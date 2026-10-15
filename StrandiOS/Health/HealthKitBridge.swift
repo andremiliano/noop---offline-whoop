@@ -35,6 +35,12 @@ final class HealthKitBridge: ObservableObject {
     /// Without this, a strap offload finishing during the foreground read/write pass was deferred until
     /// the next app open even though the newly-banked rows were already available locally.
     private var writeBackPending = false
+    /// A pass was skipped because the phone was locked: Health's database is encrypted until first unlock
+    /// after... each lock, so every read and write throws "Protected health data is inaccessible". Retried the
+    /// moment the phone unlocks (`protectedDataDidBecomeAvailable`) instead of being reported as a failure and
+    /// left to the next foreground open, which is what made workouts reach Health late.
+    private var deferredForLock = false
+    private var unlockObserver: NSObjectProtocol?
     /// How many days the last COMPLETED sync covered, so an observer wake can tell whether a sync that
     /// just ran already read its window. Paired with `lastSync` (the time). Reset to 0 by a failed sync,
     /// so a failure never lets a later wake be skipped on the strength of it.
@@ -89,6 +95,15 @@ final class HealthKitBridge: ObservableObject {
         self.repo = repo
         self.appleDeviceId = appleDeviceId
         self.noopDeviceId = noopDeviceId
+        unlockObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.deferredForLock else { return }
+                self.deferredForLock = false
+                await self.writeBackAfterNewData()
+            }
+        }
         // Order matters: a free-signed build with no HealthKit entitlement is dead in the water even
         // where the hardware supports Health, so surface that first. `.unavailable` (no HealthKit at
         // all, e.g. iPad without the framework) still wins where it applies because we only reach the
@@ -489,6 +504,10 @@ final class HealthKitBridge: ObservableObject {
     @discardableResult
     func sync(days: Int = 30) async -> Bool {
         guard auth == .authorized else { return false }
+        guard UIApplication.shared.isProtectedDataAvailable else {
+            deferForLock()
+            return false
+        }
         guard !syncing else {
             // A full sync includes write-back. If new strap data is landing concurrently, guarantee one
             // final write-only reconciliation after the current owner releases the bridge.
@@ -765,6 +784,7 @@ final class HealthKitBridge: ObservableObject {
             // A failed sync must never let a later wake skip on the strength of it — the rows it would
             // have written are not there. Clearing the window means `window <= lastSyncDays` cannot hold.
             lastSyncDays = 0
+            if Self.isLockedError(error) { deferForLock(); return false }
             lastError = String(localized: "Apple Health sync failed: \(error.localizedDescription)")
             return false
         }
@@ -800,6 +820,10 @@ final class HealthKitBridge: ObservableObject {
         // No authorization is a successful no-op for a background task. The scheduler is cancelled by
         // its app-owned operation after observing this state, so it does not keep waking unnecessarily.
         guard auth == .authorized else { return true }
+        guard UIApplication.shared.isProtectedDataAvailable else {
+            deferForLock()
+            return true
+        }
         guard !syncing else {
             writeBackPending = true
             return true
@@ -812,9 +836,23 @@ final class HealthKitBridge: ObservableObject {
             lastError = nil
             return true
         } catch {
+            if Self.isLockedError(error) { deferForLock(); return true }
             lastError = String(localized: "Apple Health sync failed: \(error.localizedDescription)")
             return false
         }
+    }
+
+    /// Whether `error` is Health refusing because the phone is locked.
+    private static func isLockedError(_ error: Error) -> Bool {
+        if (error as? HKError)?.code == .errorDatabaseInaccessible { return true }
+        return error.localizedDescription.localizedCaseInsensitiveContains("protected health data")
+    }
+
+    /// Records that this pass waits for the unlock, and says so, rather than raising an error.
+    private func deferForLock() {
+        deferredForLock = true
+        lastError = nil
+        workoutWriteStatus = "Waiting for the phone to unlock to write to Health; it writes as soon as it does."
     }
 
     /// Release the single-flight gate and service one coalesced fresh-data signal. Scheduling a new task
@@ -1223,7 +1261,7 @@ final class HealthKitBridge: ObservableObject {
             pending = pending.dropFirst(chunk.count)
             pendingTs = pendingTs.dropFirst(chunk.count)
             do { try await store.save(chunk) } catch {
-                heartRateWriteStatus = "Heart rate write failed: \(error.localizedDescription)"
+                heartRateWriteStatus = Self.isLockedError(error) ? "Heart rate waits for the phone to unlock." : "Heart rate write failed: \(error.localizedDescription)"
                 throw error
             }
             lastSaved = max(lastSaved, chunkTs.last ?? lastSaved)
@@ -1390,7 +1428,12 @@ final class HealthKitBridge: ObservableObject {
         } ?? .local()
         let existing = await ownWorkouts(fromTs: fromTs, toTs: toTs)
         let plan = WorkoutWritebackPlan.plan(
-            rows: rows.map { .init(key: key($0), signature: signature($0), startTs: $0.startTs, endTs: $0.endTs) },
+            rows: rows.map {
+                // Only a strap-detected bout can still be growing. A workout ended in the app, or imported,
+                // is final the moment it exists, and holding it back made workouts reach Health 10 minutes late.
+                .init(key: key($0), signature: signature($0), startTs: $0.startTs, endTs: $0.endTs,
+                      maybeRunning: WorkoutSource.classify($0.source) == .detected && $0.endTs > toTs - WorkoutWritebackPlan.settleSeconds)
+            },
             existing: existing.map {
                 .init(id: $0.uuid, key: ($0.metadata?[HKMetadataKeyExternalUUID] as? String) ?? "",
                       signature: $0.metadata?[Self.workoutSignatureKey] as? String,
