@@ -422,3 +422,19 @@ final class WorkoutZoneTimeTests: XCTestCase {
         XCTAssertEqual(WorkoutZoneTime.text(3900), "1h05")
     }
 }
+
+final class HealthWorkoutTypeTests: XCTestCase {
+    func testEveryCatalogSportButTheUnmappableOnesKeepTheirOwnType() {
+        // Sports Health has no activity type for stay "Other"; everything else must not.
+        let unmapped: Set<String> = ["padel", "motocross", "paintball", "parkour", "polo", "skydiving", "netball", "horseback riding", "wheelchair", "gaming", "motor racing", "nordic walking", "ballet", "billiards", "breakdancing", "cheerleading", "darts", "disc golf", "gaelic football", "spikeball", "other"]
+        for sport in WorkoutCatalog.all where !unmapped.contains(sport.name.lowercased()) {
+            XCTAssertNotEqual(HealthWorkoutType.activityType(forSport: sport.name), .other, sport.name)
+        }
+    }
+    func testTheSportsThatShowedUpAsOtherExercise() {
+        XCTAssertEqual(HealthWorkoutType.activityType(forSport: "Weightlifting"), .traditionalStrengthTraining)
+        XCTAssertEqual(HealthWorkoutType.activityType(forSport: "Strength"), .traditionalStrengthTraining)
+        XCTAssertEqual(HealthWorkoutType.activityType(forSport: "HIIT"), .highIntensityIntervalTraining)
+        XCTAssertEqual(HealthWorkoutType.activityType(forSport: "Activity"), .other)
+    }
+}

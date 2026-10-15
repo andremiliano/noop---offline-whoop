@@ -1422,10 +1422,12 @@ final class HealthKitBridge: ObservableObject {
         // The workout is recorded by the wearer's strap, so name it as the device (Strava shows it as the
         // recording device); the source app stays NOOP. The device is not part of the signature, so
         // workouts already in Health are not rewritten for it.
-        let strapDevice = repo.activeDeviceDisplayName().map {
-            HKDevice(name: $0, manufacturer: $0.hasPrefix("WHOOP") ? "WHOOP" : nil, model: nil, hardwareVersion: nil,
-                     firmwareVersion: nil, softwareVersion: nil, localIdentifier: nil, udiDeviceIdentifier: nil)
-        } ?? .local()
+        // Named for the strap, with the manufacturer, so Strava and Bevel list the recording device as the
+        // WHOOP rather than the phone. A strap with no registry name is still a WHOOP here.
+        let strapName = repo.activeDeviceDisplayName() ?? "WHOOP"
+        let strapDevice = HKDevice(name: strapName, manufacturer: "WHOOP", model: strapName, hardwareVersion: nil,
+                                   firmwareVersion: nil, softwareVersion: nil, localIdentifier: nil,
+                                   udiDeviceIdentifier: nil)
         let existing = await ownWorkouts(fromTs: fromTs, toTs: toTs)
         let plan = WorkoutWritebackPlan.plan(
             rows: rows.map {
@@ -1550,40 +1552,7 @@ final class HealthKitBridge: ObservableObject {
     /// member; unknown labels fall back to `.other`, never dropped.
     private static func activityType(forSport sport: String) -> HKWorkoutActivityType {
         if sport == LiftingImporter.sport { return .traditionalStrengthTraining }
-        switch sport.lowercased() {
-        case "running":       return .running
-        case "walking":       return .walking
-        case "hiking":        return .hiking
-        case "cycling":       return .cycling
-        case "hiit":          return .highIntensityIntervalTraining
-        case "core training": return .coreTraining
-        case "yoga":          return .yoga
-        case "pilates":       return .pilates
-        case "rowing":        return .rowing
-        case "elliptical":    return .elliptical
-        case "stairs":        return .stairClimbing
-        case "jump rope":     return .jumpRope
-        case "boxing":        return .boxing
-        case "basketball":    return .basketball
-        case "soccer":        return .soccer
-        case "football":      return .americanFootball
-        case "baseball":      return .baseball
-        case "badminton":     return .badminton
-        case "tennis":        return .tennis
-        case "table tennis":  return .tableTennis
-        case "volleyball":    return .volleyball
-        case "squash":        return .squash
-        case "martial arts":  return .martialArts
-        case "dancing":       return .dance
-        case "golf":          return .golf
-        case "climbing":      return .climbing
-        case "skiing":        return .downhillSkiing
-        case "snowboarding":  return .snowboarding
-        case "swimming":      return .swimming
-        case "surfing":       return .surfingSports
-        case "paddling":      return .paddleSports
-        default:              return .other
-        }
+        return HealthWorkoutType.activityType(forSport: sport)
     }
 
     /// Which distance quantity a sport's `distanceM` maps to; nil for sports whose Health distance
