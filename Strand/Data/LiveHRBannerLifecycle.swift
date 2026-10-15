@@ -34,12 +34,14 @@ enum LiveHRBannerLifecycle {
     /// `standsAside`: the Lift Log banner is on screen. `linkUp`: the strap is connected. `appActive`: NOOP is on
     /// screen, the only time iOS lets it start a banner.
     ///
-    /// `workoutActive`: a workout started in the app is running. It is a reason to start the banner by itself,
-    /// strap connected or not: its clock needs no strap, and a strap held by another app or out of reach must not
-    /// leave a workout without its Lock Screen timer.
+    /// `workoutActive`: a workout started in the app is running. It starts the banner by itself, strap connected
+    /// or not (its clock needs no strap), and ALSO whether or not the heart rate switch is on: the switch is about a
+    /// heart rate on the Lock Screen all day, and a wearer who turned that off still wants a workout's timer there
+    /// (a tester's switch was off, so no workout ever showed, 15 Oct 2026). The banner ends with the workout when the
+    /// switch is off.
     static func step(switchOn: Bool, standsAside: Bool, linkUp: Bool, showing: Bool, age: TimeInterval?,
                      appActive: Bool, workoutActive: Bool = false) -> Step {
-        guard switchOn, !standsAside else { return showing ? .end : .nothing }
+        guard switchOn || workoutActive, !standsAside else { return showing ? .end : .nothing }
         if showing { return appActive && (age ?? .infinity) >= renewAfter ? .renew : .push }
         return (linkUp || workoutActive) && appActive ? .start : .nothing
     }

@@ -107,7 +107,15 @@ final class LiveActivityController {
     /// `staleAfter`).
     private func update(bpm: Int?, recovery: Int?, connected: Bool, standsAside: Bool, appActive: Bool,
                         effort: Int?, workout: (sport: String, start: Date, paused: Bool, effort: Int)? = nil) {
-        guard authInfo.areActivitiesEnabled else { return }
+        guard authInfo.areActivitiesEnabled else {
+            // iOS says Live Activities are off for NOOP (Settings > NOOP > Live Activities, or the system
+            // switch). Silent until now, which left "nothing shows" with nothing in the log to say why.
+            if !refusalLogged, workout != nil {
+                refusalLogged = true
+                log("not started: iOS has Live Activities switched off for NOOP (Settings > NOOP > Live Activities)")
+            }
+            return
+        }
 
         // A banner iOS ended (after about eight hours) or the user swiped away is gone: forget it, so the next time
         // NOOP is on screen it starts one again rather than pushing to nothing. (One NOOP is ending is not gone yet.)
@@ -149,7 +157,7 @@ final class LiveActivityController {
         case .end:
             guard !isEnding else { return }
             isEnding = true
-            log(switchOn ? "ended: the Lift Log banner takes its place" : "ended: its switch is off")
+            log(standsAside ? "ended: the Lift Log banner takes its place" : "ended: its switch is off")
             Task { await end() }
             return
         case .start, .push, .renew: break

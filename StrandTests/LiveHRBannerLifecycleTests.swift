@@ -16,9 +16,14 @@ final class LiveHRBannerLifecycleTests: XCTestCase {
     func testWorkoutStartsTheBannerWithoutTheStrapLink() {
         XCTAssertEqual(step(linkUp: false, showing: false, appActive: true, workoutActive: true), .start)
         XCTAssertEqual(step(linkUp: false, showing: false, appActive: true, workoutActive: false), .nothing)
-        // Still only while NOOP is on screen, and never against the switch.
+        // Still only while NOOP is on screen.
         XCTAssertEqual(step(linkUp: false, showing: false, appActive: false, workoutActive: true), .nothing)
-        XCTAssertEqual(step(switchOn: false, linkUp: false, showing: false, appActive: true, workoutActive: true), .nothing)
+        // The heart rate switch being off does not stop a workout's banner, and the banner goes with the workout.
+        XCTAssertEqual(step(switchOn: false, linkUp: false, showing: false, appActive: true, workoutActive: true), .start)
+        XCTAssertEqual(step(switchOn: false, showing: true, appActive: true, workoutActive: true), .push)
+        XCTAssertEqual(step(switchOn: false, showing: true, workoutActive: false), .end)
+        // The Lift Log banner still takes the place of this one.
+        XCTAssertEqual(step(standsAside: true, showing: true, workoutActive: true), .end)
     }
 
     /// A dropped link of any length and a strap that is not measuring show the dash, on screen or not; the number comes
