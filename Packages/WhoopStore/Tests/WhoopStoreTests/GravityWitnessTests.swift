@@ -86,6 +86,29 @@ final class GravityWitnessTests: XCTestCase {
         XCTAssertEqual(fp.count, 0)
         XCTAssertEqual(fp.maxTs, 0)
     }
+
+    /// The frontier shortcut: new rows are found by rowid, with the span they cover, and nothing else moves it.
+    func testFrontierSeesOnlyNewRowsAndTheirSpan() async throws {
+        let s = try await store()
+        _ = try await s.insert(Streams(gravity: [grav(100, 1), grav(200, 2)]), deviceId: "dev1")
+        let f0 = try await s.gravityRowFrontier()
+        XCTAssertGreaterThan(f0, 0)
+        let none = try await s.gravityTsRange(afterRowid: f0)
+        XCTAssertNil(none)
+
+        // Re-offloading banked seconds adds no rows, so the frontier holds (this is what lets cached days stand).
+        _ = try await s.insert(Streams(gravity: [grav(100, 9), grav(200, 9)]), deviceId: "dev1")
+        let f1 = try await s.gravityRowFrontier()
+        XCTAssertEqual(f1, f0)
+
+        // A backfilled older second and a new one: the span covers both, on any device.
+        _ = try await s.insert(Streams(gravity: [grav(50, 1), grav(300, 1)]), deviceId: "other")
+        let range = try await s.gravityTsRange(afterRowid: f0)
+        XCTAssertEqual(range?.min, 50)
+        XCTAssertEqual(range?.max, 300)
+        let f2 = try await s.gravityRowFrontier()
+        XCTAssertGreaterThan(f2, f0)
+    }
 }
 
 /// `hasHrInWindow` is the day-owner resolver's presence probe. It replaced a `LIMIT 1` fetch from

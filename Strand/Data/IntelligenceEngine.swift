@@ -84,6 +84,10 @@ final class IntelligenceEngine: ObservableObject {
     /// In-memory and per-process exactly like `dayScanCache`; see `StepsMotionCache` for why this one needs
     /// no config signature. Pruned to the calibration window each pass so it cannot grow without bound.
     private var stepsMotionCache: [String: (key: String, motion: Double)] = [:]
+    /// The gravity table's rowid frontier as of the pass that last verified `stepsMotionCache`. In memory only:
+    /// the first pass of a process pays the per-day witnesses once and records it. While the frontier has not
+    /// moved, no gravity row exists that the cache has not seen, so every cached day stands without a query.
+    private var stepsMotionFrontier: Int?
     /// The scoring-config signature the `dayScanCache` entries were produced under (profile / baselines1 /
     /// tz / sleep need+consistency / habitual midsleep / stager toggles). Those feed `analyzeDay` but are
     /// pass-global, not in the per-day key, so when the current pass's signature differs every cached scan is
@@ -2698,8 +2702,9 @@ final class IntelligenceEngine: ObservableObject {
             }
         }
         let inStepsMotionCache = stepsMotionCache
-        let (refStepsByDay, motionByDay, updatedStepsMotionCache, stepsMotionLogLine):
-            ([String: Double], [String: Double], [String: (key: String, motion: Double)], String) =
+        let inStepsMotionFrontier = stepsMotionFrontier
+        let (refStepsByDay, motionByDay, updatedStepsMotionCache, stepsMotionLogLine, newFrontier):
+            ([String: Double], [String: Double], [String: (key: String, motion: Double)], String, Int?) =
             await Task.detached(priority: .utility) {
             // Phone reference steps per day, from the apple-health daily rows (steps > 0 only).
             // #693: read `appleDaily`, NOT `dailyMetrics`. Apple-Health import writes the phone step count into
@@ -2722,6 +2727,24 @@ final class IntelligenceEngine: ObservableObject {
             var motionReused = 0
             var motionFolded = 0
             var motionWindow: Set<String> = []
+            // Which days could have gained a gravity row since the cache was last verified. One O(1) read of the
+            // table's rowid frontier and, only if it moved, the span of just the new rows; a day outside that
+            // span keeps its cached fold with no per-day COUNT over its whole stream (60 of them, minutes under
+            // load on a phone with a long history). Any doubt (no frontier yet, a frontier that went BACKWARDS
+            // as after a restore, a failed read) falls through to the per-day witness below, unchanged.
+            let frontierNow = try? await store.gravityRowFrontier()
+            var dirtySpan: (min: Int, max: Int)?
+            var trustFrontier = false
+            if let now = frontierNow, let last = inStepsMotionFrontier, now >= last, !inStepsMotionCache.isEmpty {
+                if now == last {
+                    trustFrontier = true
+                } else if let span = try? await store.gravityTsRange(afterRowid: last) {
+                    dirtySpan = span
+                    trustFrontier = true
+                } else {
+                    trustFrontier = false
+                }
+            }
             for off in 0..<stepsCalDays {
                 let dayMid = Self.midnightLocal(nowLocalMidnight - off * 86_400, offsetSec: tzOffset)
                 let dayEnd = dayMid + 86_400 - 1
@@ -2734,6 +2757,12 @@ final class IntelligenceEngine: ObservableObject {
                 // from a genuinely empty day, so a failed aggregate could serve a stale zero for a day that
                 // has since gained gravity. On a nil fingerprint the cache is bypassed in both directions:
                 // fold fresh, and store nothing under a key that does not describe anything.
+                if trustFrontier, let cached = motionCacheLocal[dayKey], cached.key.hasPrefix(owner + "|"),
+                   !(dirtySpan.map { $0.min <= dayEnd && $0.max >= dayMid } ?? false) {
+                    motionReused += 1
+                    if cached.motion > 0 { motion[dayKey] = cached.motion }
+                    continue
+                }
                 let fp = try? await store.gravityFingerprint(deviceId: owner, from: dayMid, to: dayEnd)
                 let key = fp.map { StepsMotionCache.cacheKey(owner: owner, gravityCount: $0.count,
                                                              gravityMaxTs: $0.maxTs) }
@@ -2764,9 +2793,10 @@ final class IntelligenceEngine: ObservableObject {
             motionCacheLocal = motionCacheLocal.filter { motionWindow.contains($0.key) }
             let motionLog = StepsMotionCache.logLine(reused: motionReused, folded: motionFolded,
                                                      size: motionCacheLocal.count)
-            return (refSteps, motion, motionCacheLocal, motionLog)
+            return (refSteps, motion, motionCacheLocal, motionLog, frontierNow)
         }.value
         stepsMotionCache = updatedStepsMotionCache
+        stepsMotionFrontier = newFrontier
         // Write the pruned cache back, only when it moved. `serialize` renders sorted, so a pass that reused
         // every day produces the string already stored and skips the write entirely.
         let stepsMotionPayload = StepsMotionCache.serialize(stepsMotionCache)
