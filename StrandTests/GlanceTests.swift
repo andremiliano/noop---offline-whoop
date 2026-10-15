@@ -438,3 +438,24 @@ final class HealthWorkoutTypeTests: XCTestCase {
         XCTAssertEqual(HealthWorkoutType.activityType(forSport: "Activity"), .other)
     }
 }
+
+final class AutoWorkoutNotifierTests: XCTestCase {
+    private typealias P = AutoWorkoutNotifier.Policy
+    private let now = 100_000
+
+    func testAnnouncesAStretchOnceItHasSettled() {
+        XCTAssertTrue(P.shouldNotify(enabled: true, startSec: now - 4000, endSec: now - 2000, lastNotified: nil, now: now))
+    }
+    func testNotWhileItMayStillBeGoing() {
+        XCTAssertFalse(P.shouldNotify(enabled: true, startSec: now - 4000, endSec: now - 120, lastNotified: nil, now: now))
+    }
+    func testNotWhenOffOrStale() {
+        XCTAssertFalse(P.shouldNotify(enabled: false, startSec: now - 4000, endSec: now - 2000, lastNotified: nil, now: now))
+        XCTAssertFalse(P.shouldNotify(enabled: true, startSec: now - 90_000, endSec: now - 80_000, lastNotified: nil, now: now))
+    }
+    func testTheSameSessionWithShiftedEdgesIsNotAnnouncedTwice() {
+        let last = (start: now - 4000, end: now - 2000)
+        XCTAssertFalse(P.shouldNotify(enabled: true, startSec: now - 4100, endSec: now - 1900, lastNotified: last, now: now))
+        XCTAssertTrue(P.shouldNotify(enabled: true, startSec: now - 1500, endSec: now - 900, lastNotified: last, now: now))
+    }
+}

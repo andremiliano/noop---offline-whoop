@@ -26,6 +26,8 @@ struct AutoWorkoutCard: View {
     @State private var handledThisSession = false
     /// Guards the Save button while the write is in flight.
     @State private var saving = false
+    /// What the wearer saves it as; remembered, so a regular lifter is not asked every time.
+    @AppStorage("autoWorkout.lastSport") private var sport = "Workout"
 
     var body: some View {
         Group {
@@ -68,6 +70,17 @@ struct AutoWorkoutCard: View {
                     .font(StrandFont.footnote)
                     .foregroundStyle(StrandPalette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Menu {
+                    Picker("What was it?", selection: $sport) {
+                        Text("Workout").tag("Workout")
+                        ForEach(WorkoutCatalog.all.map(\.name), id: \.self) { Text(verbatim: $0).tag($0) }
+                    }
+                } label: {
+                    Label { Text(verbatim: sport) } icon: { Image(systemName: "chevron.up.chevron.down") }
+                        .font(StrandFont.subhead)
+                }
+                .accessibilityLabel(Text("What was it?"))
 
                 HStack(spacing: NoopMetrics.space3) {
                     Button {
@@ -118,7 +131,7 @@ struct AutoWorkoutCard: View {
         saving = true
         handledThisSession = true
         Task {
-            _ = await repo.saveDetectedWorkout(w)
+            _ = await repo.saveDetectedWorkout(w, sport: sport)
             await repo.refresh()   // surfaces the new workout + drops it from re-suggestion
             saving = false
         }

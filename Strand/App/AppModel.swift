@@ -360,6 +360,7 @@ final class AppModel: ObservableObject {
         repo.$days.sink { [weak self] days in
             self?.evaluateIllness(days)
             self?.evaluateStrainTarget()
+            self?.evaluateAutoWorkout()
             // Keep the battery night-guard's learned bedtime warm off the same signal (throttled inside).
             self?.refreshHabitualMidsleep()
         }.store(in: &hrCancellables)
@@ -2110,6 +2111,18 @@ final class AppModel: ObservableObject {
             dayStrain21: row.strain.map { UnitFormatter.effortValue($0, scale: .whoop) },
             target21: CoupledView.optimalStrainRange(recovery: row.recovery)?.lowerBound,
             enabled: behavior.strainTargetNudge)
+    }
+
+    /// Announces a likely workout the detector found after a sync (`AutoWorkoutNotifier`). Throttled, because the
+    /// scan reads two days of heart rate; the detector itself skips anything saved or dismissed.
+    func evaluateAutoWorkout() {
+        guard PuffinExperiment.autoDetectWorkoutsEnabled, AutoWorkoutNotifier.scanIsDue else { return }
+        AutoWorkoutNotifier.markScanned()
+        Task { [weak self] in
+            guard let self, let c = await self.repo.autoDetectCandidate() else { return }
+            AutoWorkoutNotifier.onCandidate(startSec: c.startSec, endSec: c.endSec, durationMin: c.durationMin,
+                                            avgBpm: c.avgBpm, enabled: true)
+        }
     }
 
     /// Re-run the illness watch over the cached history. Called when the Automations toggle
