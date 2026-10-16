@@ -472,6 +472,14 @@ final class AutoWorkoutGateTests: XCTestCase {
         XCTAssertTrue(AutoWorkoutGate.passes(w(avg: 110, peak: 150), restingBpm: 50))
         XCTAssertTrue(AutoWorkoutGate.passes(w(avg: 150, peak: 172), restingBpm: 50))
     }
+    /// A stretch the wearer was notified about stays on the card for them to answer, whatever the bar says now.
+    func testANotifiedStretchIsKeptEvenIfItWouldNotPassNow() {
+        let walk = w(avg: 93, peak: 118)
+        XCTAssertFalse(AutoWorkoutGate.keeps(walk, restingBpm: 50, notified: nil))
+        XCTAssertTrue(AutoWorkoutGate.keeps(walk, restingBpm: 50, notified: (start: 600, end: 1500)))
+        XCTAssertFalse(AutoWorkoutGate.keeps(walk, restingBpm: 50, notified: (start: 5000, end: 6000)))
+    }
+
     func testBothHalvesMatterAndAnUnknownRestingUsesTheDetectorsDefault() {
         XCTAssertFalse(AutoWorkoutGate.passes(w(avg: 110, peak: 115), restingBpm: 50))   // peak too low
         XCTAssertFalse(AutoWorkoutGate.passes(w(avg: 105, peak: 150), restingBpm: nil))  // rest 60: needs 110

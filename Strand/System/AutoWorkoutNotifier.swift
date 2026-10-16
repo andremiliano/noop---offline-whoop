@@ -44,7 +44,7 @@ enum AutoWorkoutNotifier {
 
     static func markScanned() { UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastScanKey) }
 
-    private static var lastNotified: (start: Int, end: Int)? {
+    static var lastNotified: (start: Int, end: Int)? {
         guard let raw = UserDefaults.standard.string(forKey: lastKey) else { return nil }
         let p = raw.split(separator: ":").compactMap { Int($0) }
         return p.count == 2 ? (p[0], p[1]) : nil

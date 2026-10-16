@@ -14,6 +14,16 @@ enum AutoWorkoutGate {
     /// Peak heart rate over the stretch, above resting.
     static let minPeakAboveResting = 70
 
+    /// Whether to show a stretch on the Today card: it clears the bar, or it is one the wearer was already
+    /// NOTIFIED about. The second half is the point: a notification promises a suggestion to say yes or no to,
+    /// for as long as it takes to get to it, so it must not vanish because the bar was raised since, or because
+    /// the stretch's edges moved a little.
+    static func keeps(_ w: DetectedWorkout, restingBpm: Int?, notified: (start: Int, end: Int)?) -> Bool {
+        if passes(w, restingBpm: restingBpm) { return true }
+        guard let n = notified else { return false }
+        return w.startSec < n.end && n.start < w.endSec
+    }
+
     static func passes(_ w: DetectedWorkout, restingBpm: Int?) -> Bool {
         let rest = restingBpm ?? AutoWorkoutDetector.defaultRestingHR
         return w.avgBpm >= rest + minAvgAboveResting && w.peakBpm >= rest + minPeakAboveResting

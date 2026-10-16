@@ -3278,7 +3278,9 @@ final class Repository: ObservableObject {
         }
         // The app's own bar on top of the shared detector's (`AutoWorkoutGate`): a brisk walk is not a workout.
         return Self.selectAutoDetectCandidate(
-            candidates.filter { AutoWorkoutGate.passes($0, restingBpm: restingBpm) },
+            candidates.filter {
+                AutoWorkoutGate.keeps($0, restingBpm: restingBpm, notified: AutoWorkoutNotifier.lastNotified)
+            },
             autoDismissedTokens: autoDetectDismissedSpans,
             detectedDismissedTokens: dismissedDetectedSpans)
     }
