@@ -459,3 +459,22 @@ final class AutoWorkoutNotifierTests: XCTestCase {
         XCTAssertTrue(P.shouldNotify(enabled: true, startSec: now - 1500, endSec: now - 900, lastNotified: last, now: now))
     }
 }
+
+final class AutoWorkoutGateTests: XCTestCase {
+    private func w(avg: Int, peak: Int) -> DetectedWorkout {
+        DetectedWorkout(startSec: 0, endSec: 1320, avgBpm: avg, peakBpm: peak, durationMin: 22)
+    }
+    func testABriskWalkIsNotAWorkout() {
+        // The notification that prompted this: 22 min, average 93, resting 50.
+        XCTAssertFalse(AutoWorkoutGate.passes(w(avg: 93, peak: 118), restingBpm: 50))
+    }
+    func testAStrengthSessionAndARunPass() {
+        XCTAssertTrue(AutoWorkoutGate.passes(w(avg: 110, peak: 150), restingBpm: 50))
+        XCTAssertTrue(AutoWorkoutGate.passes(w(avg: 150, peak: 172), restingBpm: 50))
+    }
+    func testBothHalvesMatterAndAnUnknownRestingUsesTheDetectorsDefault() {
+        XCTAssertFalse(AutoWorkoutGate.passes(w(avg: 110, peak: 115), restingBpm: 50))   // peak too low
+        XCTAssertFalse(AutoWorkoutGate.passes(w(avg: 105, peak: 150), restingBpm: nil))  // rest 60: needs 110
+        XCTAssertTrue(AutoWorkoutGate.passes(w(avg: 112, peak: 150), restingBpm: nil))
+    }
+}

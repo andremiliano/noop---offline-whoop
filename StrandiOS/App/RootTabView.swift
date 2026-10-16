@@ -235,7 +235,7 @@ struct RootTabView: View {
                 // in-exercise screen. Calm sheet easing, matching the other quick-action presents.
                 withAnimation(Self.sheetEase) { quickAction = .live }
                 router.requestedDestination = nil
-            case .liveSession:
+            case .liveSession, .today:
                 // Live Sessions is presented from Today's own Start entry (a cover, not a routed sheet),
                 // so a deep-link lands on the Today tab where that entry lives.
                 withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.24)) { selectedTab = 0 }
@@ -330,7 +330,7 @@ struct RootTabView: View {
                 case .activeWorkout: LiveView()
                 // .liveSession routes to the Today tab (handled above — its Start entry owns the cover);
                 // this keeps the switch exhaustive and falls back to Today if it ever reaches the host.
-                case .liveSession: LiquidTodayView()
+                case .liveSession, .today: LiquidTodayView()
                 // .journal opens through the quick-action Journal sheet (handled above); this keeps the
                 // switch exhaustive and falls back to the journal's Insights host if it ever reaches here.
                 case .journal: InsightsView()

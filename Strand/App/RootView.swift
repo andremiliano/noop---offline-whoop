@@ -328,7 +328,7 @@ struct RootView: View {
             case .activeWorkout: selection = .live
             // Live Sessions is presented from Today's own Start entry (a cover, not a sidebar item), so a
             // deep-link lands the user on Today where that entry lives.
-            case .liveSession: selection = .today
+            case .liveSession, .today: selection = .today
             // The #627 Today journal widget routes to the Insights sidebar row (which hosts the journal card).
             case .journal: selection = .insights
             // #1862: the Today Coach card's launcher hands off here, so the send/stream/consent surface

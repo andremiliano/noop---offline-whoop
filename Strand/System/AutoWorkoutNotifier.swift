@@ -26,6 +26,7 @@ enum AutoWorkoutNotifier {
         }
     }
 
+    static let notificationCategoryId = "auto-workout"
     private static let lastKey = "behavior.autoWorkoutLastNotified"   // "start:end"
     private static let lastScanKey = "behavior.autoWorkoutLastScan"
     /// Scans are not free (two days of heart rate), so one per this long at most.
@@ -66,6 +67,7 @@ enum AutoWorkoutNotifier {
             content.title = String(localized: "Looks like a workout")
             content.body = String(localized: "\(from)-\(to), \(durationMin) min, avg HR \(avgBpm). Open NOOP to save it.")
             content.sound = .default
+            content.categoryIdentifier = notificationCategoryId
             center.add(UNNotificationRequest(identifier: "auto-workout", content: content, trigger: nil))
             UserDefaults.standard.set("\(startSec):\(endSec)", forKey: lastKey)
         }

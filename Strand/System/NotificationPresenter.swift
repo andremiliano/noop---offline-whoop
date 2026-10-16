@@ -22,6 +22,8 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
     /// is a safe no-op (the tap is simply not routed) rather than a crash if this ever fires before the
     /// root has wired it.
     var onCoachBriefTapped: (() -> Void)?
+    /// A tap on the "looks like a workout" notification: open Today, where its card is.
+    var onAutoWorkoutTapped: (() -> Void)?
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
@@ -41,6 +43,9 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
     ) {
         if response.notification.request.content.categoryIdentifier == CoachBriefScheduler.notificationCategoryId {
             onCoachBriefTapped?()
+        }
+        if response.notification.request.content.categoryIdentifier == AutoWorkoutNotifier.notificationCategoryId {
+            onAutoWorkoutTapped?()
         }
         completionHandler()
     }

@@ -28,6 +28,8 @@ final class NavRouter: ObservableObject {
         case trends
         case activeWorkout
         case liveSession
+        /// The Today screen, where a workout suggestion's card is (the auto-detect notification's tap target).
+        case today
         case journal
         /// #1862: the Coach screen, opened from the Today Coach launcher sheet once the user picks a
         /// suggestion or submits the composer. The launcher deliberately owns no send/stream/consent
@@ -68,6 +70,7 @@ final class NavRouter: ObservableObject {
     func openDevices() { requestedDestination = .devices }
     /// #1862: open Coach, optionally with a question the launcher already collected.
     func openCoach() { requestedDestination = .coach }
+    func openToday() { requestedDestination = .today }
     /// Open the existing wake-alarm and wind-down settings from Sleep.
     func openAlarms() { requestedDestination = .alarms }
     /// Open the v5 Insights hub (the n-of-1 "what moves your Charge" surface).
