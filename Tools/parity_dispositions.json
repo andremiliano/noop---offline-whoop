@@ -300,6 +300,30 @@
       "platform": "kotlin",
       "rationale": "Swift Repository.refresh reads the same imported daily union (unionDailyMetrics) in the excluded app layer and hands it, still apart from the computed union, to ChargeBaselines.resolve (#2525); this disposition does not assert behavioral parity.",
       "twin_path": "Strand/Data/Repository.swift"
+    },
+    {
+      "type": "platform_specific",
+      "kind": "add-unpaired-function",
+      "identity": "swift\u0000Packages/StrandImport/Sources/StrandImport/HealthWriteback.swift::midSleepTs/1#1",
+      "identity_sha256": "69f67a0a0c04b6471ac441553bb58d051a22e1bfd8575d3cdd86f926d27591a8",
+      "platform": "swift",
+      "rationale": "Used only by the iOS HealthKitBridge write-back to stamp a night's vitals at the middle of its longest sleep; the Android Health Connect exporter does not call it (Swift-only change)."
+    },
+    {
+      "type": "platform_specific",
+      "kind": "add-unpaired-function",
+      "identity": "swift\u0000Packages/WhoopStore/Sources/WhoopStore/Reads.swift::gravityRowFrontier/0#1",
+      "identity_sha256": "a4fe09f47eff48f65e9d900e05a1c1755cddb72591a5f83afe0fb1c27527a188",
+      "platform": "swift",
+      "rationale": "Used only by the Swift IntelligenceEngine steps-motion cache to skip per-day gravity counts while the table's rowid frontier is unchanged; a performance-only change that alters no stored or shown value, and Android's engine has no equivalent cache read."
+    },
+    {
+      "type": "platform_specific",
+      "kind": "add-unpaired-function",
+      "identity": "swift\u0000Packages/WhoopStore/Sources/WhoopStore/Reads.swift::gravityTsRange/1#1",
+      "identity_sha256": "3ae3deb66c3c35ee32387bc72e5b565360bc1a119e7228895531952259082ae1",
+      "platform": "swift",
+      "rationale": "Used only by the Swift IntelligenceEngine steps-motion cache to skip per-day gravity counts while the table's rowid frontier is unchanged; a performance-only change that alters no stored or shown value, and Android's engine has no equivalent cache read."
     }
   ]
 }
