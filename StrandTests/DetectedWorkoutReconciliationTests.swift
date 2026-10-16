@@ -169,7 +169,7 @@ final class DetectedWorkoutReconciliationTests: XCTestCase {
             UserDefaults.standard.set(true, forKey: PuffinExperiment.autoDetectWorkoutsKey)
             let store = try await WhoopStore.inMemory()
             let start = Int(Date().timeIntervalSince1970) - 2 * 3_600
-            let hr = (0...(13 * 60)).map { HRSample(ts: start + $0, bpm: 120) }
+            let hr = (0...(13 * 60)).map { HRSample(ts: start + $0, bpm: 140) }
             _ = try await store.insert(Streams(hr: hr), deviceId: deviceId)
 
             let repo = Repository(deviceId: deviceId)
