@@ -222,6 +222,9 @@ final class Repository: ObservableObject {
     /// bool read), so the read facades pay nothing when the mode is off. Diagnostic only - it never changes
     /// the workout list the query returns.
     var workoutsLog: ((String) -> Void)?
+    /// Always-on line sink for the workout suggestion's rare events (a notification posted, what the card found).
+    /// Wired to the strap log by `AppModel`; nil in tests.
+    var autoDetectLog: ((String) -> Void)?
 
     /// The user's HRmax + sex, injected once by AppModel so the read path can BACKFILL a strap-native
     /// workout's Effort (strain) on display when its stored value is nil (#961). Default nil (inert): tests

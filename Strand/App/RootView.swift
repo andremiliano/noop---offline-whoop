@@ -315,6 +315,9 @@ struct RootView: View {
         }
         // Honour a cross-screen request to open a top-level destination (e.g. Live's "Manage devices"),
         // then clear it so the same tap can fire again later. Devices maps to the `.devices` sidebar item.
+        .sheet(isPresented: $router.showWorkoutSuggestion) {
+            WorkoutSuggestionSheet()
+        }
         .onChangeCompat(of: router.requestedDestination) { dest in
             switch dest {
             case .devices: selection = .devices

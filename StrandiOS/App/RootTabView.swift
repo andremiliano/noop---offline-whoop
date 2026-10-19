@@ -192,6 +192,9 @@ struct RootTabView: View {
         }
         // Live's "Manage devices" affordance (and any future cross-screen link to Devices) routes here:
         // present the Devices manager in its own nav stack, the same way the quick-action screens do.
+        .sheet(isPresented: $router.showWorkoutSuggestion) {
+            WorkoutSuggestionSheet()
+        }
         .sheet(isPresented: $showDevices) {
             devicesScreen
         }

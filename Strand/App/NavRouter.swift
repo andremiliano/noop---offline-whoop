@@ -71,6 +71,10 @@ final class NavRouter: ObservableObject {
     /// #1862: open Coach, optionally with a question the launcher already collected.
     func openCoach() { requestedDestination = .coach }
     func openToday() { requestedDestination = .today }
+    /// Raised by a tap on the "looks like a workout" notification: the shell presents the suggestion on its own
+    /// sheet, so the answer never depends on where on Today the card is, or on Today having loaded.
+    @Published var showWorkoutSuggestion = false
+    func openWorkoutSuggestion() { showWorkoutSuggestion = true }
     /// Open the existing wake-alarm and wind-down settings from Sleep.
     func openAlarms() { requestedDestination = .alarms }
     /// Open the v5 Insights hub (the n-of-1 "what moves your Charge" surface).

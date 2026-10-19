@@ -267,6 +267,7 @@ final class AppModel: ObservableObject {
         // Each emitter re-checks `TestCentre.active(.workouts)` before building a line, so these wirings are
         // inert (one UserDefaults bool read) when the mode is off. `live` is captured strongly, as above.
         self.repo.workoutsLog = { [live] line in live.append(log: line, domain: .workouts) }
+        self.repo.autoDetectLog = { [live] line in live.append(log: AppModel.stamped(line)) }
         self.gpsRecorder.workoutsLog = { [live] line in live.append(log: line, domain: .workouts) }
         // #961: give the read model the user's HRmax + sex so it can backfill a strap-native workout's
         // Effort on display when the stored value is nil (a live/manual session that ended with sparse HR).
@@ -2119,7 +2120,10 @@ final class AppModel: ObservableObject {
         guard PuffinExperiment.autoDetectWorkoutsEnabled, AutoWorkoutNotifier.scanIsDue else { return }
         AutoWorkoutNotifier.markScanned()
         Task { [weak self] in
-            guard let self, let c = await self.repo.autoDetectCandidate() else { return }
+            guard let self else { return }
+            let c = await self.repo.autoDetectCandidate()
+            self.repo.autoDetectLog?("Workout suggestion scan: \(c.map { "candidate \($0.startSec)-\($0.endSec) avg \($0.avgBpm) peak \($0.peakBpm)" } ?? "none")")
+            guard let c else { return }
             AutoWorkoutNotifier.onCandidate(startSec: c.startSec, endSec: c.endSec, durationMin: c.durationMin,
                                             avgBpm: c.avgBpm, enabled: true)
         }

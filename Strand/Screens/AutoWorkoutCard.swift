@@ -17,6 +17,11 @@ struct AutoWorkoutCard: View {
 
     @EnvironmentObject var repo: Repository
 
+    /// On the notification's own sheet: never renders nothing. It says it is looking, then shows the suggestion or
+    /// the reason there is none.
+    var alwaysShow = false
+    @State private var loading = true
+
     /// Whether the toggle is on. Read here too so the card disappears the instant it's switched off.
     @AppStorage(PuffinExperiment.autoDetectWorkoutsKey) private var autoDetectEnabled = false
 
@@ -35,6 +40,9 @@ struct AutoWorkoutCard: View {
         Group {
             if autoDetectEnabled, !handledThisSession, let w = candidate {
                 card(for: w)
+            } else if alwaysShow, loading {
+                HStack(spacing: 8) { ProgressView(); Text("Looking for the workout…").font(StrandFont.footnote) }
+                    .foregroundStyle(StrandPalette.textSecondary)
             } else if autoDetectEnabled, let note = missingNote {
                 // A notification said there was a suggestion and there is none to show now. Say why, so the
                 // tap that brought the wearer here is never answered by an empty page.
@@ -42,6 +50,11 @@ struct AutoWorkoutCard: View {
                     .foregroundStyle(StrandPalette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, NoopMetrics.space2)
+            } else if alwaysShow {
+                Text(autoDetectEnabled ? "Nothing is waiting to be saved right now." : "Auto-detect workouts is switched off, so there is nothing to suggest.")
+                    .font(StrandFont.footnote)
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         // Re-scan whenever the data refreshes (a sync bumps refreshSeq) or the toggle flips on.
@@ -146,8 +159,11 @@ struct AutoWorkoutCard: View {
     }
 
     private func reload() async {
+        defer { loading = false }
         guard autoDetectEnabled else { candidate = nil; missingNote = nil; return }
+        let t0 = Date()
         let next = await repo.autoDetectCandidate()
+        repo.autoDetectLog?("Workout suggestion card: \(next.map { "candidate \($0.startSec)-\($0.endSec)" } ?? "none") in \(Int(Date().timeIntervalSince(t0) * 1000)) ms")
         if next == nil { await reloadMissingNote() } else { missingNote = nil }
         // A fresh scan resets the session guard so a NEW window can surface after one is handled.
         if next != candidate { handledThisSession = false }
