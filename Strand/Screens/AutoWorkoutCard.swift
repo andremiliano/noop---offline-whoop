@@ -24,6 +24,8 @@ struct AutoWorkoutCard: View {
     @State private var candidate: DetectedWorkout?
     /// Hide immediately on Save/X without waiting for the next reload (avoids a flash of the old card).
     @State private var handledThisSession = false
+    /// Why the stretch the last notification named has no card, when it has none (see `reloadMissingNote`).
+    @State private var missingNote: String?
     /// Guards the Save button while the write is in flight.
     @State private var saving = false
     /// What the wearer saves it as; remembered, so a regular lifter is not asked every time.
@@ -33,6 +35,13 @@ struct AutoWorkoutCard: View {
         Group {
             if autoDetectEnabled, !handledThisSession, let w = candidate {
                 card(for: w)
+            } else if autoDetectEnabled, let note = missingNote {
+                // A notification said there was a suggestion and there is none to show now. Say why, so the
+                // tap that brought the wearer here is never answered by an empty page.
+                Label { Text(verbatim: note).font(StrandFont.footnote) } icon: { Image(systemName: "info.circle") }
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, NoopMetrics.space2)
             }
         }
         // Re-scan whenever the data refreshes (a sync bumps refreshSeq) or the toggle flips on.
@@ -119,9 +128,27 @@ struct AutoWorkoutCard: View {
         return String(localized: "Looks like a workout on \(Self.dateFmt.string(from: startDate)) around \(start)-\(end) (avg HR \(w.avgBpm), \(w.durationMin) min). Save it?")
     }
 
+    /// The last notified stretch, if it was within a day and nothing is offering it now: it was saved in the
+    /// meantime (the strap's own detection can bank it as a workout after the notification), it was dismissed,
+    /// or the heart rate data behind it was revised.
+    private func reloadMissingNote() async {
+        guard let n = AutoWorkoutNotifier.lastNotified,
+              Date().timeIntervalSince1970 - Double(n.end) < 86_400 else { missingNote = nil; return }
+        let from = Date(timeIntervalSince1970: TimeInterval(n.start))
+        let to = Date(timeIntervalSince1970: TimeInterval(n.end))
+        let time = Self.timeFmt
+        let range = "\(time.string(from: from))-\(time.string(from: to))"
+        if let saved = await repo.workoutRows().first(where: { $0.startTs < n.end && n.start < $0.endTs }) {
+            missingNote = String(localized: "The stretch at \(range) is already saved as \(saved.sport) in Workouts.")
+        } else {
+            missingNote = String(localized: "The stretch at \(range) you were told about is not on offer any more: it was dismissed, or it no longer looks like a workout.")
+        }
+    }
+
     private func reload() async {
-        guard autoDetectEnabled else { candidate = nil; return }
+        guard autoDetectEnabled else { candidate = nil; missingNote = nil; return }
         let next = await repo.autoDetectCandidate()
+        if next == nil { await reloadMissingNote() } else { missingNote = nil }
         // A fresh scan resets the session guard so a NEW window can surface after one is handled.
         if next != candidate { handledThisSession = false }
         candidate = next
