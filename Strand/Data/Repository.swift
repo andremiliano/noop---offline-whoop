@@ -225,6 +225,12 @@ final class Repository: ObservableObject {
     /// Always-on line sink for the workout suggestion's rare events (a notification posted, what the card found).
     /// Wired to the strap log by `AppModel`; nil in tests.
     var autoDetectLog: ((String) -> Void)?
+    /// Pulls Apple Health into the store now (iPhone only, set by the app scene; nil on the Mac). The workout
+    /// suggestion uses it to find a workout the Apple Watch recorded for the same stretch.
+    var appleHealthSyncNow: (() async -> Bool)?
+    /// Bumped whenever a workout suggestion is answered, so the Today row that offers it reloads and goes away.
+    @Published private(set) var suggestionRevision = 0
+    func noteSuggestionAnswered() { suggestionRevision += 1 }
 
     /// The user's HRmax + sex, injected once by AppModel so the read path can BACKFILL a strap-native
     /// workout's Effort (strain) on display when its stored value is nil (#961). Default nil (inert): tests
@@ -3312,6 +3318,7 @@ final class Repository: ObservableObject {
         guard !spans.contains(token) else { return }
         spans.append(token)
         autoDetectDismissedSpans = prunedAutoDetectSpans(spans, now: Int(Date().timeIntervalSince1970))
+        noteSuggestionAnswered()
     }
 
     // MARK: - Workout detail (read-only helpers, additive) , #410

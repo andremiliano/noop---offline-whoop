@@ -31,6 +31,9 @@ struct AutoWorkoutCard: View {
     @State private var handledThisSession = false
     /// Why the stretch the last notification named has no card, when it has none (see `reloadMissingNote`).
     @State private var missingNote: String?
+    /// What the "recorded on my Apple Watch" check is doing or found.
+    @State private var watchCheck: String?
+    @State private var checkingWatch = false
     /// Guards the Save button while the write is in flight.
     @State private var saving = false
     /// What the wearer saves it as; remembered, so a regular lifter is not asked every time.
@@ -119,6 +122,24 @@ struct AutoWorkoutCard: View {
                         .disabled(saving)
                     Spacer()
                 }
+
+                // Recorded on the Apple Watch instead: NOOP then keeps the Watch's own workout (its sport and route)
+                // and charts it with the strap's heart rate, rather than saving a second, generic copy.
+                if repo.appleHealthSyncNow != nil {
+                    Button {
+                        checkWatch(w)
+                    } label: {
+                        Label(checkingWatch ? "Checking Apple Health…" : "Recorded on my Apple Watch", systemImage: "applewatch")
+                            .font(StrandFont.subhead)
+                    }
+                    .disabled(saving || checkingWatch)
+                    if let note = watchCheck {
+                        Text(verbatim: note)
+                            .font(StrandFont.footnote)
+                            .foregroundStyle(StrandPalette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         }
         .accessibilityElement(children: .contain)
@@ -170,12 +191,38 @@ struct AutoWorkoutCard: View {
         candidate = next
     }
 
+    /// Pulls Apple Health in, then looks for a workout it recorded over this stretch. If there is one, the
+    /// suggestion goes away by itself (an overlapping saved workout is never suggested again) and the Watch's
+    /// workout is the record; if not, say so, since the Watch may not have synced to the phone yet.
+    private func checkWatch(_ w: DetectedWorkout) {
+        checkingWatch = true
+        watchCheck = nil
+        Task {
+            _ = await repo.appleHealthSyncNow?()
+            await repo.refresh()
+            let apple = await repo.workoutRows().first {
+                $0.source == "apple-health" && $0.startTs < w.endSec && w.startSec < $0.endTs
+            }
+            checkingWatch = false
+            if let apple {
+                repo.autoDetectLog?("Workout suggestion: matched an Apple Watch workout (\(apple.sport)) for \(w.startSec)-\(w.endSec)")
+                watchCheck = String(localized: "Found your Apple Watch workout: \(apple.sport). NOOP keeps it and charts it with your strap's heart rate.")
+                handledThisSession = true
+                candidate = nil
+                repo.noteSuggestionAnswered()
+            } else {
+                watchCheck = String(localized: "No Apple Watch workout found for this time yet. Make sure the Watch has synced to your phone, then try again, or save it here.")
+            }
+        }
+    }
+
     private func save(_ w: DetectedWorkout) {
         saving = true
         handledThisSession = true
         Task {
             _ = await repo.saveDetectedWorkout(w, sport: sport)
-            await repo.refresh()   // surfaces the new workout + drops it from re-suggestion
+            await repo.refresh()
+            repo.noteSuggestionAnswered()   // surfaces the new workout + drops it from re-suggestion
             saving = false
         }
     }

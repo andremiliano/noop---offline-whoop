@@ -372,11 +372,6 @@ struct LiquidTodayView: View {
                     // pinned above the reorderable block so an active manual workout is immediately visible
                     // and taps straight through to Live. Renders nothing when no workout is active.
                     ActiveWorkoutIndicatorSection()
-                    // Opt-in "looks like a workout?" suggestion. Up here, not at the foot of the page: the
-                    // notification that announces it opens Today, and a card below the fold read as "nothing
-                    // there". Self-gates on the toggle and on the detector finding an unsaved, un-dismissed
-                    // stretch that clears `AutoWorkoutGate`, so it renders nothing otherwise.
-                    AutoWorkoutCard()
                     // #today-layout (parity with Android): every Today section — the Charge/Effort/Rest hero
                     // and Start-session included — renders in the user's saved order. Reorder via the Arrange
                     // sheet (the header's up/down button; native drag rows); the order persists under the
@@ -416,6 +411,9 @@ struct LiquidTodayView: View {
                     if !glance {
                         dataSourcesSection
                     }
+                    // A workout NOOP suggested stays here until it is answered (saved, dismissed, or matched to the
+                    // Apple Watch): closing its sheet does not lose it. Renders nothing when none is waiting.
+                    PendingWorkoutRow()
                     Color.clear.frame(height: 90) // floating tab-bar clearance
                 }
                 .padding(.horizontal, NoopMetrics.screenHPadding)
