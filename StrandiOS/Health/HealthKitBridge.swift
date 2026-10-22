@@ -1235,6 +1235,9 @@ final class HealthKitBridge: ObservableObject {
             HKQuery.predicateForSamples(withStart: Date(timeIntervalSince1970: TimeInterval(windowStart)),
                                         end: Date(timeIntervalSince1970: TimeInterval(nowTs) + 60),
                                         options: []),
+            // Not the heart rate attached to a workout: deleting that would strip it from its workout.
+            NSCompoundPredicate(notPredicateWithSubpredicate:
+                HKQuery.predicateForObjects(withMetadataKey: Self.workoutHeartRateMarkerKey)),
         ])
         _ = try? await store.deleteObjects(of: type, predicate: pred)
 
@@ -1291,6 +1294,8 @@ final class HealthKitBridge: ObservableObject {
     /// Workout metadata holding what was written (sport, energy, distance), so a changed workout is
     /// recognised and an unchanged one is not written again.
     private static let workoutSignatureKey = "NOOPWorkoutSignature"
+    /// Metadata on heart-rate samples attached to a workout, so the minute-average writer does not delete them.
+    private static let workoutHeartRateMarkerKey = "NOOPWorkoutHeartRate"
 
     /// The workouts we wrote into [fromTs, toTs], found by source AND a `noop:workout:` external UUID, so a
     /// workout from another app is never returned. One of ours with no key at all is left alone: it
@@ -1502,6 +1507,21 @@ final class HealthKitBridge: ObservableObject {
                    store.authorizationStatus(for: t) == .sharingAuthorized {
                     extras.append(HKQuantitySample(type: t, quantity: .init(unit: .meter(), doubleValue: meters),
                                                    start: start, end: end))
+                }
+                // The strap's heart rate over the session, attached to the workout the way an Apple Watch's is. A
+                // workout carrying no heart rate gives a reader (Bevel's Activity Strain, Strava's average HR) nothing to
+                // work from but the separately written minute averages, which it may not tie to the workout. Marked, so
+                // the heart-rate writer's delete-then-write of the last 48 hours leaves them alone.
+                if let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate),
+                   store.authorizationStatus(for: hrType) == .sharingAuthorized {
+                    let unit = HKUnit.count().unitDivided(by: .minute())
+                    let beats = await repo.hrBuckets(from: row.startTs, to: row.endTs, bucketSeconds: 5)
+                    for b in beats where b.ts >= row.startTs && b.ts <= row.endTs {
+                        let at = Date(timeIntervalSince1970: TimeInterval(b.ts))
+                        extras.append(HKQuantitySample(type: hrType, quantity: .init(unit: unit, doubleValue: b.bpm),
+                                                       start: at, end: at,
+                                                       metadata: [Self.workoutHeartRateMarkerKey: true]))
+                    }
                 }
                 if !extras.isEmpty { try await builder.addSamples(extras) }
                 try await builder.endCollection(at: end)
